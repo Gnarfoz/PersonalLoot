@@ -1,9 +1,35 @@
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0", "AceEvent-3.0")
+INSPECT_DIST = 285*285
+
 
 function PersonalLoot:Trace(message)
 	if self.debugging then
 		self:Print(message)
 	end
+end
+
+function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
+	local playerName = GetUnitName("playertarget")
+	if playerName then
+		self:RegisterEvent("INSPECT_READY")
+	  NotifyInspect(playerName)
+	end
+end
+
+function PersonalLoot:INSPECT_READY()
+	self:UnregisterEvent("INSPECT_READY")
+	local playerName, realm = UnitName("target")
+	id = GetInventorySlotInfo("LegsSlot")
+  link = GetInventoryItemLink("target", id)
+	if not link then
+		distanceSquared, valid = UnitDistanceSquared(playerName)
+	  if not valid or distanceSquared >= INSPECT_DIST then
+			self:Trace(playerName.." is too far to inspect!")
+			return
+		end
+	end
+	self:Trace(playerName.." "..link)
+	self:RegisterEvent("INSPECT_READY")
 end
 
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
@@ -74,12 +100,13 @@ end
 
 function PersonalLoot:OnEnable()
 	self:Trace("OnEnable")
-	self.debugging = false
+	self.debugging = true
 	-- Reloading the UI doesn't result in these events being fired, so force them
 	self:PARTY_LOOT_METHOD_CHANGED()
 	self:ZONE_CHANGED_NEW_AREA()
 	self:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
 	self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+	self:RegisterEvent("PLAYER_TARGET_CHANGED")
 end
 
 function PersonalLoot:OnDisable()
