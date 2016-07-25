@@ -76,6 +76,7 @@ end
 
 function PersonalLoot:OnEnable()
 	self:trace("OnEnable")
+	-- Reloading the UI doesn't result in these events being fired, so force them
 	self:PARTY_LOOT_METHOD_CHANGED()
 	self:ZONE_CHANGED_NEW_AREA()
 	self:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
