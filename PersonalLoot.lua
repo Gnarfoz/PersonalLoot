@@ -104,6 +104,47 @@ function PersonalLoot:UpdateChatMsgLootRegistration()
 	end
 end
 
+
+function PersonalLoot:EquipSlotNameToInventoryName(name)
+	-- FingerSlot is for Finger0Slot / Finger1Slot
+	-- TrinketSlot is for Trinket0Slot / Trinket1Slot
+	-- WeaponSlot is for any weapon which isn't specifically main or off hand
+	-- TODO: Handle ranged weapons and relics
+	local map = {
+		-- Fury warrior's can wield a 2H in each hand
+		[ "INVTYPE_2HWEAPON" ] = "WeaponSlot",
+		[ "INVTYPE_FEET" ] = "FeetSlot",
+		[ "INVTYPE_FINGER" ] = "FingerSlot",
+		[ "INVTYPE_CHEST" ] = "ChestSlot",
+		[ "INVTYPE_CLOAK" ] = "BackSlot",
+		[ "INVTYPE_HAND" ] = "HandsSlot",
+		[ "INVTYPE_HEAD" ] = "HeadSlot",
+		[ "INVTYPE_LEGS" ] = "LegsSlot",
+		[ "INVTYPE_NECK" ] = "NeckSlot",
+		[ "INVTYPE_RANGEDRIGHT" ] = "WeaponSlot",
+		[ "INVTYPE_ROBE" ] = "ChestSlot",
+		[ "INVTYPE_SHIRT" ] = "ShirtSlot",
+		[ "INVTYPE_SHOULDER" ] = "ShoulderSlot",
+		[ "INVTYPE_TABARD" ] = "TabardSlot",
+		[ "INVTYPE_TRINKET" ] = "TrinketSlot",
+		[ "INVTYPE_WAIST" ] = "WaistSlot",
+		[ "INVTYPE_WEAPONMAINHAND" ] = "MainHandSlot",
+		[ "INVTYPE_WEAPON" ] = "WeaponSlot",
+		[ "INVTYPE_WRIST" ] = "WristSlot",
+	}
+
+	local out = map[name]
+
+	if not out then
+		self:Print("Unable to convert "..name)
+		return nil
+	else
+		self:Trace("Converted "..name.." to "..out)
+	end
+
+	return out
+end
+
 function PersonalLoot:IsTradable(owner, item)
 	local _, _, _, level, _, _, _, _, slot_name = GetItemInfo(item)
 	-- TODO: exit early on < epic
@@ -111,18 +152,34 @@ function PersonalLoot:IsTradable(owner, item)
 		return
 	end
 
-	self:Trace("slot name "..slot_name)
+	slot_name = self:EquipSlotNameToInventoryName(slot_name)
+	if not slot_name then
+		return
+	end
+
+	if slot_name == "FingerSlot" then
+		-- TODO: handle it
+		return
+	elseif slot_name == "TrinketSlot" then
+		-- TODO: handle it
+		return
+	elseif slot_name == "WeaponSlot" then
+		-- TODO: handle it
+		return
+	end
 
 	local slot_id = GetInventorySlotInfo(slot_name)
 	self:Trace("slot id "..slot_id)
 
-	local equipped_item = GetInventoryItemID(owner, slot_id)
-	-- TODO:
-	-- What if no item is equipped?
-	-- How about 2 trinkets, 2 rings, 2 weapons, one with a higher ilvl, one with lower?
+	local equipped_item_link = GetInventoryItemLink(owner, slot_id)
+	if not equipped_item_link then
+		-- No item is equipped
+		return true
+	end
 
-	local equipped_item_level = select(4, GetItemInfo(equipped_item))
-	self:Trace("equipped "..equipped_item_level..", "..level..", slot="..slot)
+	local equipped_item_level = select(4, GetItemInfo(equipped_item_link))
+	self:Trace("Equipped item level: "..equipped_item_level)
+
 	return equipped_item_level > level
 end
 
