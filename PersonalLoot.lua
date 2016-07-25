@@ -16,7 +16,7 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
 		owner = "player"
 	else
 		_, _, owner, item_link = string.find(message, "(.+) receives loot: (|.+|r)")
-		if not(owner or item_link) then
+		if not(owner and item_link) then
 			return
 		end
 	end
