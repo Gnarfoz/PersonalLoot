@@ -1,0 +1,7 @@
+## Interface: 70000
+## Title: PersonalLoot
+## Author: Royal Sanctum guild on Thunderhorn EU
+## Version: 0.1
+
+embeds.xml
+PersonalLoot.lua
