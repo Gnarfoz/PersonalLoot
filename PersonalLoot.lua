@@ -1,6 +1,38 @@
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0", "AceEvent-3.0")
 INSPECT_DIST = 285*285
 
+local options = {
+  name = "Personal Loot",
+  type = "group",
+  args = {
+    debug = {
+      name = "Debug",
+      desc = "Turn debugging options on/off",
+      type = "toggle",
+      set = function(info, val) PersonalLoot.debugging = val end,
+      get = function(info) return PersonalLoot.debugging end
+    },
+    itemType = {
+      name = "Item Type",
+      desc = "Minimal item type to work with",
+      type = "select",
+      style = "dropdown",
+      values = {
+        GREY="grey",
+        WHITE="white",
+        GREEN="green",
+        RARE="rare",
+        EPIC="epic",
+      },
+      set = function(info, val) PersonalLoot.itemType = val end,
+      get = function(info) return PersonalLoot.itemType end
+    }
+  }
+}
+
+LibStub("AceConfig-3.0"):RegisterOptionsTable("PersonalLoot", options, "pl")
+--PersonalLoot.configPanel:AssignOptions(PersonalLoot)
+--LibStub("AceConfigDialog-3.0"):Open("PersonalLoot")
 
 function PersonalLoot:Trace(message)
 	if self.debugging then
@@ -101,6 +133,7 @@ end
 function PersonalLoot:OnEnable()
 	self:Trace("OnEnable")
 	self.debugging = true
+  self.itemType = "epic"
 	-- Reloading the UI doesn't result in these events being fired, so force them
 	self:PARTY_LOOT_METHOD_CHANGED()
 	self:ZONE_CHANGED_NEW_AREA()
