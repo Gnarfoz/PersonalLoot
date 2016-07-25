@@ -1,9 +1,7 @@
-local debugging = false
-
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0", "AceEvent-3.0")
 
 function PersonalLoot:trace(message)
-	if debugging then
+	if self.debugging then
 		self:Print(message)
 	end
 end
@@ -41,7 +39,7 @@ function PersonalLoot:ZONE_CHANGED_NEW_AREA()
 end
 
 function PersonalLoot:UpdateChatMsgLootRegistration()
-	if (debugging or self.in_raid) and self.is_personal_loot then
+	if (self.debugging or self.in_raid) and self.is_personal_loot then
 		self:RegisterEvent("CHAT_MSG_LOOT")
 	else
 		self:UnregisterEvent("CHAT_MSG_LOOT")
@@ -76,6 +74,7 @@ end
 
 function PersonalLoot:OnEnable()
 	self:trace("OnEnable")
+	self.debugging = false
 	-- Reloading the UI doesn't result in these events being fired, so force them
 	self:PARTY_LOOT_METHOD_CHANGED()
 	self:ZONE_CHANGED_NEW_AREA()
