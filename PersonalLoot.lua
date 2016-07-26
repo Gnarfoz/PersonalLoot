@@ -2,6 +2,7 @@ PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0"
 
 local INSPECT_DIST = 285*285
 local RED = "cffff0000"
+local PLAYER = "player"
 local ITEM_QUALITY_RARE = 3
 local ITEM_QUALITY_EPIC = 4
 
@@ -74,45 +75,63 @@ end
 function PersonalLoot:InspectEquipment(playerName)
     if playerName and CanInspect(playerName, false) then
       self:RegisterEvent("INSPECT_READY")
+      self.currentPlayer = playerName
       NotifyInspect(playerName)
     end
 end
 
 function PersonalLoot:INSPECT_READY()
   self:UnregisterEvent("INSPECT_READY")
-  local playerName, realm = UnitName("target")
-  if self.currentLoot then
-    id = GetInventorySlotInfo(select(9, GetItemInfo(itemLink)))
-  else
-    self:Error("No loot selected")
-    return
-  end
-  link = GetInventoryItemLink(playerName, id)
-  ClearInspectPlayer()
-  if not link then
-    distanceSquared, valid = UnitDistanceSquared(playerName)
-    if not valid or distanceSquared >= INSPECT_DIST then
-      self:Error(playerName.." is too far to inspect!")
-      return
+  owner = self.currentPlayer
+  -- Cache all of the equipment slots
+  for id=0,19,1 do
+    link = GetInventoryItemLink(owner, id)
+    if not link then
+      distanceSquared, valid = UnitDistanceSquared(owner)
+      if not valid or distanceSquared >= INSPECT_DIST then
+        ClearInspectPlayer()
+        self:Error(owner.." is too far to inspect!")
+        return
+      end
     end
   end
-  self:Trace(playerName.." "..link)
   self:RegisterEvent("INSPECT_READY")
+  self:Trace("Finished inspecting "..owner)
+  -- TODO: Throw an event instead
+  self:LootInspection(owner, self.currentLoot)
 end
 
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
-  local owner, itemLink
+  local owner, itemLink = PLAYER, nil
 
   _, _, itemLink = string.find(message, "You receive loot: (|.+|r)")
-  if itemLink then
-    owner = "player"
-  else
+  if not itemLink then
     _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
   end
 
-  if self:IsTradable(owner, itemLink) then
-    self:Trace(itemLink.." owned by "..owner.." is tradable.")
-    self:EnumerateTradees(owner, itemLink)
+  if not self:IsEquipment(owner, itemLink) then
+    self:Trace(itemLink.." is not an equippable item so ignoring...")
+    return
+  end
+
+  if owner ~= PLAYER then
+    self.currentLoot = itemLink
+    self:InspectEquipment(owner)
+  else
+    self:LootInspection(owner, itemLink)
+  end
+end
+
+function PersonalLoot:LootInspection(owner, itemLink)
+  if owner and itemLink then
+    if self:IsTradable(owner, itemLink) then
+      self:Trace(itemLink.." owned by "..owner.." is tradable.")
+      self:EnumerateTradees(owner, itemLink)
+    else
+      self:Trace(itemLink.." owned by "..owner.." is not tradable.")
+    end
+  else
+    self:Trace("Owner or itemLink is empty in LootInspection. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
   end
 end
 
@@ -188,9 +207,9 @@ function PersonalLoot:GetRealItemLevel(owner, itemLink)
   return itemLevel
 end
 
-function PersonalLoot:IsTradable(owner, itemLink)
+function PersonalLoot:IsEquipment(owner, itemLink)
   if not owner or not itemLink then
-    self:Error("IsTradable received nil owner or itemLink")
+    self:Error("IsEquipment received nil owner or itemLink")
     return false
   end
 
@@ -204,10 +223,10 @@ function PersonalLoot:IsTradable(owner, itemLink)
 
   if not self.allItemTypes then
     if self.instanceType == "raid" and quality < ITEM_QUALITY_EPIC then
-      self:Trace("quality is "..quality.." so ignoring")
+      self:Trace("Quality is "..quality.." so ignoring..")
       return false
     elseif self.instanceType == "party" and quality < ITEM_QUALITY_RARE then
-      self:Trace("quality is "..quality.." so ignoring")
+      self:Trace("Quality is "..quality.." so ignoring...")
       return false
     end
   end
@@ -217,6 +236,11 @@ function PersonalLoot:IsTradable(owner, itemLink)
     return false
   end
 
+  return true
+end
+
+-- TODO: have to call ClearInspectPlayer() after we're done using the inspected info
+function PersonalLoot:IsTradable(owner, itemLink)
   local itemLevel = self:GetRealItemLevel(owner, itemLink)
 
   if slotName == "FingerSlot" then
@@ -253,7 +277,6 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
     return
   end
 
-  self.currentLoot = itemLink
   for index, name in pairs(names) do
     if self:UnitCanUse(name, itemLink) then
       self:InspectEquipment(name)
@@ -270,6 +293,8 @@ function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
   self.isDebugging = true
   self.allItemTypes = true
+  self.currentPlayer = nil
+  self.currentLoot = nil
   -- Reloading the UI doesn't result in these events being fired, so force them
   self:PARTY_LOOT_METHOD_CHANGED()
   self:ZONE_CHANGED_NEW_AREA()
