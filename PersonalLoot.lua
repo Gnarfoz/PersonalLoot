@@ -106,12 +106,13 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
   else
     _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
     if not(owner and itemLink) then
+      self:Error(itemLink.." has been left behind!")
       return
     end
   end
 
   if self:IsTradable(owner, itemLink) then
-    self:Trace("Item is tradable")
+    self:Trace(itemLink.." owned by "..owner.." is tradable.")
     self:EnumerateTradees(owner, itemLink)
   end
 end
@@ -228,8 +229,8 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
     return
   end
 
-  self.currentLoot = itemLink 
-  for name in names do
+  self.currentLoot = itemLink
+  for index, name in pairs(names) do
     if self:UnitCanUse(name, itemLink) then
       self:InspectEquipment(name)
     end
