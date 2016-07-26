@@ -150,6 +150,7 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
     [ "INVTYPE_CHEST" ] = "ChestSlot",
     [ "INVTYPE_CLOAK" ] = "BackSlot",
     [ "INVTYPE_HAND" ] = "HandsSlot",
+    [ "INVTYPE_HOLDABLE" ] = "SecondaryHandSlot",
     [ "INVTYPE_HEAD" ] = "HeadSlot",
     [ "INVTYPE_LEGS" ] = "LegsSlot",
     [ "INVTYPE_NECK" ] = "NeckSlot",
