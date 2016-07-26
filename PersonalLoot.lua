@@ -78,7 +78,7 @@ end
 function PersonalLoot:INSPECT_READY()
   self:UnregisterEvent("INSPECT_READY")
   local playerName, realm = UnitName("target")
-  if self:currentLoot then
+  if self.currentLoot then
     id = GetInventorySlotInfo(select(9, GetItemInfo(itemLink)))
   else
     self:Error("No loot selected")
@@ -228,8 +228,8 @@ function PersonalLoot:EnumerateTradees(owner, item_link)
     return
   end
 
-  self:currentLoot = item_link
-  for name in names
+  self.currentLoot = item_link
+  for name in names do
     if self:UnitCanUse(name, item_link) then
       self:InspectEquipment(name)
     end
