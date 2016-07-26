@@ -7,10 +7,10 @@ local options = {
   args = {
     debug = {
       name = "Debug",
-      desc = "Turn debugging options on/off",
+      desc = "Turn isDebugging options on/off",
       type = "toggle",
-      set = function(info, val) PersonalLoot.debugging = val end,
-      get = function(info) return PersonalLoot.debugging end
+      set = function(info, val) PersonalLoot.isDebugging = val end,
+      get = function(info) return PersonalLoot.isDebugging end
     },
     itemType = {
       name = "Item Type",
@@ -35,7 +35,7 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable("PersonalLoot", options, "pl")
 --LibStub("AceConfigDialog-3.0"):Open("PersonalLoot")
 
 function PersonalLoot:Trace(message)
-  if self.debugging then
+  if self.isDebugging then
     self:Print(message)
   end
 end
@@ -65,39 +65,39 @@ function PersonalLoot:INSPECT_READY()
 end
 
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
-  local owner, item_link
+  local owner, itemLink
 
-  _, _, item_link = string.find(message, "You receive loot: (|.+|r)")
-  if item_link then
+  _, _, itemLink = string.find(message, "You receive loot: (|.+|r)")
+  if itemLink then
     owner = "player"
   else
-    _, _, owner, item_link = string.find(message, "(.+) receives loot: (|.+|r)")
-    if not(owner and item_link) then
+    _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
+    if not(owner and itemLink) then
       return
     end
   end
 
-  if self:IsTradable(owner, item_link) then
-    self:Trace("item is tradable")
-    self:EnumerateTradees(owner, item_link)
+  if self:IsTradable(owner, itemLink) then
+    self:Trace("Item is tradable")
+    self:EnumerateTradees(owner, itemLink)
   end
 end
 
 function PersonalLoot:PARTY_LOOT_METHOD_CHANGED()
   local method = GetLootMethod()
   self:Trace("PARTY_LOOT_METHOD_CHANGED: "..method)
-  self.is_personal_loot = method == "personalloot"
+  self.isPersonalLoot = method == "personalloot"
   self:UpdateChatMsgLootRegistration()
 end
 
 function PersonalLoot:ZONE_CHANGED_NEW_AREA()
-  self.in_raid = select(2, IsInInstance()) == "raid"
+  self.isInRaid = select(2, IsInInstance()) == "raid"
   self:Trace("ZONE_CHANGED_NEW_AREA")
   self:UpdateChatMsgLootRegistration()
 end
 
 function PersonalLoot:UpdateChatMsgLootRegistration()
-  if (self.debugging or self.in_raid) and self.is_personal_loot then
+  if (self.isDebugging or self.isInRaid) and self.isPersonalLoot then
     self:RegisterEvent("CHAT_MSG_LOOT")
   else
     self:UnregisterEvent("CHAT_MSG_LOOT")
@@ -146,41 +146,41 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
 end
 
 function PersonalLoot:IsTradable(owner, item)
-  local _, _, _, level, _, _, _, _, slot_name = GetItemInfo(item)
+  local _, _, _, level, _, _, _, _, slotName = GetItemInfo(item)
   -- TODO: exit early on < epic
-  if slot_name == "" then
+  if slotName == "" then
     return
   end
 
-  slot_name = self:EquipSlotNameToInventoryName(slot_name)
-  if not slot_name then
+  slotName = self:EquipSlotNameToInventoryName(slotName)
+  if not slotName then
     return
   end
 
-  if slot_name == "FingerSlot" then
+  if slotName == "FingerSlot" then
     -- TODO: handle it
     return
-  elseif slot_name == "TrinketSlot" then
+  elseif slotName == "TrinketSlot" then
     -- TODO: handle it
     return
-  elseif slot_name == "WeaponSlot" then
+  elseif slotName == "WeaponSlot" then
     -- TODO: handle it
     return
   end
 
-  local slot_id = GetInventorySlotInfo(slot_name)
-  self:Trace("slot id "..slot_id)
+  local slotId = GetInventorySlotInfo(slotName)
+  self:Trace("slot id "..slotId)
 
-  local equipped_item_link = GetInventoryItemLink(owner, slot_id)
-  if not equipped_item_link then
+  local equippedItemLink = GetInventoryItemLink(owner, slotId)
+  if not equippedItemLink then
     -- No item is equipped
     return true
   end
 
-  local equipped_item_level = select(4, GetItemInfo(equipped_item_link))
-  self:Trace("Equipped item level: "..equipped_item_level)
+  local equippedItemLevel = select(4, GetItemInfo(equippedItemLink))
+  self:Trace("Equipped item level: "..equippedItemLevel)
 
-  return equipped_item_level > level
+  return equippedItemLevel > level
 end
 
 function PersonalLoot:EnumerateTradees(owner, item_id)
@@ -189,7 +189,7 @@ end
 
 function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
-  self.debugging = true
+  self.isDebugging = true
   self.itemType = "epic"
   -- Reloading the UI doesn't result in these events being fired, so force them
   self:PARTY_LOOT_METHOD_CHANGED()
