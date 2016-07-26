@@ -221,22 +221,28 @@ function PersonalLoot:IsTradable(owner, itemLink)
   return self:GetRealItemLevel(equippedItemLink) > self:GetRealItemLevel(itemLink)
 end
 
-function PersonalLoot:EnumerateTradees(owner, item_link)
+function PersonalLoot:EnumerateTradees(owner, itemLink)
   names = GetHomePartyInfo()
   if not names then
     self:Error("Can not get party members!")
     return
   end
 
+<<<<<<< HEAD
   self.currentLoot = item_link
   for name in names do
     if self:UnitCanUse(name, item_link) then
+=======
+  self:currentLoot = itemLink
+  for name in names do
+    if self:UnitCanUse(name, itemLink) then
+>>>>>>> 0ba72070505468e05b2435a6ce8023ceb95c5e33
       self:InspectEquipment(name)
     end
   end
 end
 
-function PersonalLoot:UnitCanUse(unit, item_link)
+function PersonalLoot:UnitCanUse(unit, itemLink)
   -- TODO: Implement this
   return true
 end
