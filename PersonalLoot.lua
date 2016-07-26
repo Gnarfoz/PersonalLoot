@@ -109,7 +109,6 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
   -- FingerSlot is for Finger0Slot / Finger1Slot
   -- TrinketSlot is for Trinket0Slot / Trinket1Slot
   -- WeaponSlot is for any weapon which isn't specifically main or off hand
-  -- TODO: Handle ranged weapons and relics
   local map = {
     -- Fury warrior's can wield a 2H in each hand
     [ "INVTYPE_2HWEAPON" ] = "WeaponSlot",
@@ -121,14 +120,18 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
     [ "INVTYPE_HEAD" ] = "HeadSlot",
     [ "INVTYPE_LEGS" ] = "LegsSlot",
     [ "INVTYPE_NECK" ] = "NeckSlot",
+    [ "INVTYPE_RANGED" ] = "WeaponSlot",
     [ "INVTYPE_RANGEDRIGHT" ] = "WeaponSlot",
+    -- TODO: INVTYPE_RELIC?
     [ "INVTYPE_ROBE" ] = "ChestSlot",
+    [ "INVTYPE_SHIELD" ] = "SecondaryHandSlot",
     [ "INVTYPE_SHIRT" ] = "ShirtSlot",
     [ "INVTYPE_SHOULDER" ] = "ShoulderSlot",
     [ "INVTYPE_TABARD" ] = "TabardSlot",
     [ "INVTYPE_TRINKET" ] = "TrinketSlot",
     [ "INVTYPE_WAIST" ] = "WaistSlot",
     [ "INVTYPE_WEAPONMAINHAND" ] = "MainHandSlot",
+    [ "INVTYPE_WEAPONOFFHAND" ] = "SecondaryHandSlot",
     [ "INVTYPE_WEAPON" ] = "WeaponSlot",
     [ "INVTYPE_WRIST" ] = "WristSlot",
   }
