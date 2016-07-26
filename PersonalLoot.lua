@@ -109,6 +109,11 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
     _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
   end
 
+  if not (owner and itemLink) then
+    self:Trace("Owner or itemLink is empty in CHAT_MSG_LOOT. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
+    return
+  end
+
   if not self:IsEquipment(owner, itemLink) then
     self:Trace(itemLink.." is not an equippable item so ignoring...")
     return
@@ -201,10 +206,15 @@ function PersonalLoot:InvTypeToEquipSlotName(name)
 end
 
 -- owner and itemLink must be valid
-function PersonalLoot:GetRealItemLevel(owner, itemLink)
+function PersonalLoot:GetRealItemLevel(itemLink)
   local itemLevel = select(4, GetItemInfo(itemLink))
   self:Trace(itemLink.." has item level "..itemLevel)
   return itemLevel
+end
+
+function PersonalLoot:GetRealItemLevelBySlotName(owner, slotName)
+  local slotId = GetInventorySlotInfo(slotName)
+  return self:GetRealItemLevel(GetInventoryItemLink(owner, slotId))
 end
 
 function PersonalLoot:IsEquipment(owner, itemLink)
@@ -241,14 +251,14 @@ end
 
 -- TODO: have to call ClearInspectPlayer() after we're done using the inspected info
 function PersonalLoot:IsTradable(owner, itemLink)
-  local itemLevel = self:GetRealItemLevel(owner, itemLink)
+  local itemLevel = self:GetRealItemLevel(itemLink)
 
   if slotName == "FingerSlot" then
-    return self:GetRealItemLevelBySlotName("Finger0Slot") >= itemLevel
-           and self:GetRealItemLevelBySlotName("Finger1Slot") >= itemLevel
+    return self:GetRealItemLevelBySlotName(owner, "Finger0Slot") >= itemLevel
+           and self:GetRealItemLevelBySlotName(owner, "Finger1Slot") >= itemLevel
   elseif slotName == "TrinketSlot" then
-    return self:GetRealItemLevelBySlotName("Trinket0Slot") >= itemLevel
-           and self:GetRealItemLevelBySlotName("Trinket1Slot") >= itemLevel
+    return self:GetRealItemLevelBySlotName(owner, "Trinket0Slot") >= itemLevel
+           and self:GetRealItemLevelBySlotName(owner, "Trinket1Slot") >= itemLevel
    elseif slotName == "WeaponSlot" then
     -- TODO:
     -- Fury warriors can wield 2h in each hand
@@ -266,7 +276,7 @@ function PersonalLoot:IsTradable(owner, itemLink)
     return true
   end
 
-  return self:GetRealItemLevel(owner, equippedItemLink) > itemLevel
+  return self:GetRealItemLevel(equippedItemLink) > itemLevel
 end
 
 -- owner and itemLink must be valid
