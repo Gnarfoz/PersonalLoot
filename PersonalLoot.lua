@@ -184,7 +184,7 @@ end
 -- owner and itemLink must be valid
 function PersonalLoot:GetRealItemLevel(owner, itemLink)
   local itemLevel = select(4, GetItemInfo(itemLink))
-  self:Trace("Equipped item level: "..itemLevel)
+  self:Trace(itemLink.." has item level "..itemLevel)
   return itemLevel
 end
 
@@ -242,7 +242,7 @@ function PersonalLoot:IsTradable(owner, itemLink)
     return true
   end
 
-  return self:GetRealItemLevel(equippedItemLink) > itemLevel
+  return self:GetRealItemLevel(owner, equippedItemLink) > itemLevel
 end
 
 -- owner and itemLink must be valid
