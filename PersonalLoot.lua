@@ -182,12 +182,18 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
   return out
 end
 
-function PersonalLoot:GetRealItemLevel(owner, itemLink)
-  local equippedItemLevel = select(4, GetItemInfo(equippedItemLink))
+-- owner and itemLink must be valid
+local function PersonalLoot:GetRealItemLevel(owner, itemLink)
+  local equippedItemLevel = select(4, GetItemInfo(itemLink))
   self:Trace("Equipped item level: "..equippedItemLevel)
 end
 
 function PersonalLoot:IsTradable(owner, itemLink)
+  if not owner or not itemLink then
+    self:Error("IsTradable received nil owner or itemLink")
+    return
+  end
+
   local slotName = select(9, GetItemInfo(itemLink))
   -- TODO: exit early on < epic
   if slotName == "" then
@@ -222,7 +228,8 @@ function PersonalLoot:IsTradable(owner, itemLink)
   return self:GetRealItemLevel(equippedItemLink) > self:GetRealItemLevel(itemLink)
 end
 
-function PersonalLoot:EnumerateTradees(owner, itemLink)
+-- owner and itemLink must be valid
+local function PersonalLoot:EnumerateTradees(owner, itemLink)
   names = GetHomePartyInfo()
   if not names then
     self:Error("Can not get party members!")
