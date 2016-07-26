@@ -228,15 +228,9 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
     return
   end
 
-<<<<<<< HEAD
-  self.currentLoot = item_link
-  for name in names do
-    if self:UnitCanUse(name, item_link) then
-=======
   self:currentLoot = itemLink
   for name in names do
     if self:UnitCanUse(name, itemLink) then
->>>>>>> 0ba72070505468e05b2435a6ce8023ceb95c5e33
       self:InspectEquipment(name)
     end
   end
