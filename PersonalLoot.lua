@@ -183,8 +183,9 @@ end
 
 -- owner and itemLink must be valid
 function PersonalLoot:GetRealItemLevel(owner, itemLink)
-  local equippedItemLevel = select(4, GetItemInfo(itemLink))
-  self:Trace("Equipped item level: "..equippedItemLevel)
+  local itemLevel = select(4, GetItemInfo(itemLink))
+  self:Trace("Equipped item level: "..itemLevel)
+  return itemLevel
 end
 
 function PersonalLoot:IsTradable(owner, itemLink)
@@ -195,7 +196,7 @@ function PersonalLoot:IsTradable(owner, itemLink)
 
   local _, _, quality, _, _, _, _, _, invType = GetItemInfo(itemLink)
 
-  if slotName == "" then
+  if invType == "" then
     -- It's not an equippable item
     self:Trace(itemLink.." has no slotName")
     return false
@@ -236,8 +237,8 @@ function PersonalLoot:IsTradable(owner, itemLink)
   self:Trace("slot id "..slotId)
 
   local equippedItemLink = GetInventoryItemLink(owner, slotId)
-  if not equippedItemLink then
-    self:Trace("No item is equipped")
+  if equippedItemLink == "" then
+    self:Trace("No item is equipped in "..slotName)
     return true
   end
 
@@ -268,7 +269,7 @@ end
 function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
   self.isDebugging = true
-  self.allItemTypes = false
+  self.allItemTypes = true
   -- Reloading the UI doesn't result in these events being fired, so force them
   self:PARTY_LOOT_METHOD_CHANGED()
   self:ZONE_CHANGED_NEW_AREA()
