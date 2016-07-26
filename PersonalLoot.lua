@@ -64,17 +64,26 @@ function PersonalLoot:Error(message)
 end
 
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
-  local playerName = GetUnitName("playertarget")
-  if playerName and CanInspect(playerName, false) then
-    self:RegisterEvent("INSPECT_READY")
-    NotifyInspect(playerName)
-  end
+    local playerName = GetUnitName("playertarget")
+    self:InspectEquipment(playerName)
+end
+
+function PersonalLoot:InspectEquipment(playerName)
+    if playerName and CanInspect(playerName, false) then
+      self:RegisterEvent("INSPECT_READY")
+      NotifyInspect(playerName)
+    end
 end
 
 function PersonalLoot:INSPECT_READY()
   self:UnregisterEvent("INSPECT_READY")
   local playerName, realm = UnitName("target")
-  id = GetInventorySlotInfo("LegsSlot")
+  if self:currentLoot then
+    id = GetInventorySlotInfo(select(9, GetItemInfo(itemLink)))
+  else
+    self:Error("No loot selected")
+    return
+  end
   link = GetInventoryItemLink(playerName, id)
   ClearInspectPlayer()
   if not link then
@@ -212,12 +221,24 @@ function PersonalLoot:IsTradable(owner, itemLink)
   return self:GetRealItemLevel(equippedItemLink) > self:GetRealItemLevel(itemLink)
 end
 
-function PersonalLoot:EnumerateTradees(owner, item_id)
+function PersonalLoot:EnumerateTradees(owner, item_link)
   names = GetHomePartyInfo()
   if not names then
     self:Error("Can not get party members!")
     return
   end
+
+  self:currentLoot = item_link
+  for name in names
+    if self:UnitCanUse(name, item_link) then
+      self:InspectEquipment(name)
+    end
+  end
+end
+
+function PersonalLoot:UnitCanUse(unit, item_link)
+  -- TODO: Implement this
+  return true
 end
 
 function PersonalLoot:OnEnable()
@@ -229,7 +250,7 @@ function PersonalLoot:OnEnable()
   self:ZONE_CHANGED_NEW_AREA()
   self:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
   self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-  self:RegisterEvent("PLAYER_TARGET_CHANGED")
+  -- self:RegisterEvent("PLAYER_TARGET_CHANGED")
 end
 
 function PersonalLoot:OnDisable()
