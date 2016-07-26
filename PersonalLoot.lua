@@ -1,38 +1,56 @@
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0", "AceEvent-3.0")
 INSPECT_DIST = 285*285
 
+-- Options table
 local options = {
-  name = "Personal Loot",
+  name = "PersonalLoot",
+  handler = PersonalLoot,
   type = "group",
   args = {
-    debug = {
-      name = "Debug",
-      desc = "Turn isDebugging options on/off",
-      type = "toggle",
-      set = function(info, val) PersonalLoot.isDebugging = val end,
-      get = function(info) return PersonalLoot.isDebugging end
-    },
-    itemType = {
-      name = "Item Type",
-      desc = "Minimal item type to work with",
-      type = "select",
-      style = "dropdown",
-      values = {
-        GREY="grey",
-        WHITE="white",
-        GREEN="green",
-        RARE="rare",
-        EPIC="epic",
-      },
-      set = function(info, val) PersonalLoot.itemType = val end,
-      get = function(info) return PersonalLoot.itemType end
+    general = {
+      type = "group",
+      name = "General",
+      order = 1,
+      inline = true,
+      args = {
+        enable = {
+          name = "Enable",
+          desc = "Turn PersonalLoot on/off",
+          type = "toggle",
+          order = 1,
+          get = "IsEnabled",
+          set = function(_, newVal)
+            if (not newVal) then
+              PersonalLoot:Disable();
+            else 
+              PersonalLoot:Enable();
+            end 
+          end,
+        },
+        debug = {
+          name = "Debug",
+          desc = "Turn isDebugging options on/off",
+          type = "toggle",
+          order = 2,
+          set = function(info, val) PersonalLoot.isDebugging = val end,
+          get = function(info) return PersonalLoot.isDebugging end,
+        },
+        allItemTypes = {
+          name = "All Item Types",
+          desc = "Allows all item types to trigger PersonalLoot",
+          type = "toggle",
+          order = 3,
+          set = function(info, val) PersonalLoot.allItemTypes = val end,
+          get = function(info) return PersonalLoot.allItemTypes end,
+        }
+      }
     }
   }
 }
-
+-- Add options table as slash command and add it to the Bliiz interface
 LibStub("AceConfig-3.0"):RegisterOptionsTable("PersonalLoot", options, "pl")
---PersonalLoot.configPanel:AssignOptions(PersonalLoot)
---LibStub("AceConfigDialog-3.0"):Open("PersonalLoot")
+LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("PersonalLoot", options)
+LibStub("AceConfigDialog-3.0"):AddToBlizOptions("PersonalLoot", "PersonalLoot")
 
 function PersonalLoot:Trace(message)
   if self.isDebugging then
@@ -195,7 +213,7 @@ end
 function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
   self.isDebugging = true
-  self.itemType = "epic"
+  self.allItemTypes = false
   -- Reloading the UI doesn't result in these events being fired, so force them
   self:PARTY_LOOT_METHOD_CHANGED()
   self:ZONE_CHANGED_NEW_AREA()
