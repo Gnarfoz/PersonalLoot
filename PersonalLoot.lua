@@ -182,10 +182,15 @@ function PersonalLoot:InvTypeToEquipSlotName(name)
 end
 
 -- owner and itemLink must be valid
-function PersonalLoot:GetRealItemLevel(owner, itemLink)
+function PersonalLoot:GetRealItemLevel(itemLink)
   local itemLevel = select(4, GetItemInfo(itemLink))
   self:Trace(itemLink.." has item level "..itemLevel)
   return itemLevel
+end
+
+function PersonalLoot:GetRealItemLevelBySlotName(owner, slotName)
+  local slotId = GetInventorySlotInfo(slotName)
+  return self:GetRealItemLevel(GetInventoryItemLink(owner, slotId))
 end
 
 function PersonalLoot:IsTradable(owner, itemLink)
@@ -217,14 +222,14 @@ function PersonalLoot:IsTradable(owner, itemLink)
     return false
   end
 
-  local itemLevel = self:GetRealItemLevel(owner, itemLink)
+  local itemLevel = self:GetRealItemLevel(itemLink)
 
   if slotName == "FingerSlot" then
-    return self:GetRealItemLevelBySlotName("Finger0Slot") >= itemLevel
-           and self:GetRealItemLevelBySlotName("Finger1Slot") >= itemLevel
+    return self:GetRealItemLevelBySlotName(owner, "Finger0Slot") >= itemLevel
+           and self:GetRealItemLevelBySlotName(owner, "Finger1Slot") >= itemLevel
   elseif slotName == "TrinketSlot" then
-    return self:GetRealItemLevelBySlotName("Trinket0Slot") >= itemLevel
-           and self:GetRealItemLevelBySlotName("Trinket1Slot") >= itemLevel
+    return self:GetRealItemLevelBySlotName(owner, "Trinket0Slot") >= itemLevel
+           and self:GetRealItemLevelBySlotName(owner, "Trinket1Slot") >= itemLevel
    elseif slotName == "WeaponSlot" then
     -- TODO:
     -- Fury warriors can wield 2h in each hand
@@ -242,7 +247,7 @@ function PersonalLoot:IsTradable(owner, itemLink)
     return true
   end
 
-  return self:GetRealItemLevel(owner, equippedItemLink) > itemLevel
+  return self:GetRealItemLevel(equippedItemLink) > itemLevel
 end
 
 -- owner and itemLink must be valid
