@@ -1,5 +1,6 @@
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0", "AceEvent-3.0")
 INSPECT_DIST = 285*285
+RED = "cffff0000"
 
 -- Options table
 local options = {
@@ -22,9 +23,9 @@ local options = {
           set = function(_, newVal)
             if (not newVal) then
               PersonalLoot:Disable();
-            else 
+            else
               PersonalLoot:Enable();
-            end 
+            end
           end,
         },
         debug = {
@@ -58,9 +59,13 @@ function PersonalLoot:Trace(message)
   end
 end
 
+function PersonalLoot:Error(message)
+  self:Print("|"..RED..message)
+end
+
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
   local playerName = GetUnitName("playertarget")
-  if playerName then
+  if playerName and CanInspect(playerName, false) then
     self:RegisterEvent("INSPECT_READY")
     NotifyInspect(playerName)
   end
@@ -70,11 +75,12 @@ function PersonalLoot:INSPECT_READY()
   self:UnregisterEvent("INSPECT_READY")
   local playerName, realm = UnitName("target")
   id = GetInventorySlotInfo("LegsSlot")
-  link = GetInventoryItemLink("target", id)
+  link = GetInventoryItemLink(playerName, id)
+  ClearInspectPlayer()
   if not link then
     distanceSquared, valid = UnitDistanceSquared(playerName)
     if not valid or distanceSquared >= INSPECT_DIST then
-      self:Trace(playerName.." is too far to inspect!")
+      self:Error(playerName.." is too far to inspect!")
       return
     end
   end
@@ -157,7 +163,7 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
   local out = map[name]
 
   if not out then
-    self:Print("Unable to convert "..name)
+    self:Error("Unable to convert "..name)
     return nil
   else
     self:Trace("Converted "..name.." to "..out)
@@ -207,7 +213,11 @@ function PersonalLoot:IsTradable(owner, itemLink)
 end
 
 function PersonalLoot:EnumerateTradees(owner, item_id)
-
+  names = GetHomePartyInfo()
+  if not names then
+    self:Error("Can not get party members!")
+    return
+  end
 end
 
 function PersonalLoot:OnEnable()
