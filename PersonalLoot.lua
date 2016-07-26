@@ -228,7 +228,7 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
     return
   end
 
-  self:currentLoot = itemLink
+  self.currentLoot = itemLink 
   for name in names do
     if self:UnitCanUse(name, itemLink) then
       self:InspectEquipment(name)
