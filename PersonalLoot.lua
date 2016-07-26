@@ -1,6 +1,9 @@
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0", "AceEvent-3.0")
-INSPECT_DIST = 285*285
-RED = "cffff0000"
+
+local INSPECT_DIST = 285*285
+local RED = "cffff0000"
+local ITEM_QUALITY_RARE = 3
+local ITEM_QUALITY_EPIC = 4
 
 -- Options table
 local options = {
@@ -105,10 +108,6 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
     owner = "player"
   else
     _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
-    if not(owner and itemLink) then
-      self:Error(itemLink.." has been left behind!")
-      return
-    end
   end
 
   if self:IsTradable(owner, itemLink) then
@@ -125,13 +124,13 @@ function PersonalLoot:PARTY_LOOT_METHOD_CHANGED()
 end
 
 function PersonalLoot:ZONE_CHANGED_NEW_AREA()
-  self.isInRaid = select(2, IsInInstance()) == "raid"
-  self:Trace("ZONE_CHANGED_NEW_AREA")
+  self.instanceType = select(2, IsInInstance())
+  self:Trace("ZONE_CHANGED_NEW_AREA: "..self.instanceType)
   self:UpdateChatMsgLootRegistration()
 end
 
 function PersonalLoot:UpdateChatMsgLootRegistration()
-  if (self.isDebugging or self.isInRaid) and self.isPersonalLoot then
+  if (self.isDebugging or self.instanceType == "raid") and self.isPersonalLoot then
     self:RegisterEvent("CHAT_MSG_LOOT")
   else
     self:UnregisterEvent("CHAT_MSG_LOOT")
@@ -139,12 +138,12 @@ function PersonalLoot:UpdateChatMsgLootRegistration()
 end
 
 
-function PersonalLoot:EquipSlotNameToInventoryName(name)
+function PersonalLoot:InvTypeToEquipSlotName(name)
   -- FingerSlot is for Finger0Slot / Finger1Slot
   -- TrinketSlot is for Trinket0Slot / Trinket1Slot
   -- WeaponSlot is for any weapon which isn't specifically main or off hand
+  -- TODO: Handle relics
   local map = {
-    -- Fury warrior's can wield a 2H in each hand
     [ "INVTYPE_2HWEAPON" ] = "WeaponSlot",
     [ "INVTYPE_FEET" ] = "FeetSlot",
     [ "INVTYPE_FINGER" ] = "FingerSlot",
@@ -157,7 +156,6 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
     [ "INVTYPE_NECK" ] = "NeckSlot",
     [ "INVTYPE_RANGED" ] = "WeaponSlot",
     [ "INVTYPE_RANGEDRIGHT" ] = "WeaponSlot",
-    -- TODO: INVTYPE_RELIC?
     [ "INVTYPE_ROBE" ] = "ChestSlot",
     [ "INVTYPE_SHIELD" ] = "SecondaryHandSlot",
     [ "INVTYPE_SHIRT" ] = "ShirtSlot",
@@ -184,7 +182,7 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
 end
 
 -- owner and itemLink must be valid
-local function PersonalLoot:GetRealItemLevel(owner, itemLink)
+function PersonalLoot:GetRealItemLevel(owner, itemLink)
   local equippedItemLevel = select(4, GetItemInfo(itemLink))
   self:Trace("Equipped item level: "..equippedItemLevel)
 end
@@ -192,29 +190,46 @@ end
 function PersonalLoot:IsTradable(owner, itemLink)
   if not owner or not itemLink then
     self:Error("IsTradable received nil owner or itemLink")
-    return
+    return false
   end
 
-  local slotName = select(9, GetItemInfo(itemLink))
-  -- TODO: exit early on < epic
+  local _, _, quality, _, _, _, _, _, invType = GetItemInfo(itemLink)
+
   if slotName == "" then
-    return
+    -- It's not an equippable item
+    self:Trace(itemLink.." has no slotName")
+    return false
   end
 
-  slotName = self:EquipSlotNameToInventoryName(slotName)
-  if not slotName then
-    return
+  if not self.allItemTypes then
+    if self.instanceType == "raid" and quality < ITEM_QUALITY_EPIC then
+      self:Trace("quality is "..quality.." so ignoring")
+      return false
+    elseif self.instanceType == "party" and quality < ITEM_QUALITY_RARE then
+      self:Trace("quality is "..quality.." so ignoring")
+      return false
+    end
   end
+
+  slotName = self:InvTypeToEquipSlotName(invType)
+  if not slotName then
+    return false
+  end
+
+  local itemLevel = self:GetRealItemLevel(owner, itemLink)
 
   if slotName == "FingerSlot" then
-    -- TODO: handle it
-    return
+    return self:GetRealItemLevelBySlotName("Finger0Slot") >= itemLevel
+           and self:GetRealItemLevelBySlotName("Finger1Slot") >= itemLevel
   elseif slotName == "TrinketSlot" then
-    -- TODO: handle it
-    return
-  elseif slotName == "WeaponSlot" then
-    -- TODO: handle it
-    return
+    return self:GetRealItemLevelBySlotName("Trinket0Slot") >= itemLevel
+           and self:GetRealItemLevelBySlotName("Trinket1Slot") >= itemLevel
+   elseif slotName == "WeaponSlot" then
+    -- TODO:
+    -- Fury warriors can wield 2h in each hand
+    -- Only Hunters care about ranged weapons (what about wands?)
+    -- Handle main hand, off hand, shield
+    return false
   end
 
   local slotId = GetInventorySlotInfo(slotName)
@@ -222,15 +237,15 @@ function PersonalLoot:IsTradable(owner, itemLink)
 
   local equippedItemLink = GetInventoryItemLink(owner, slotId)
   if not equippedItemLink then
-    -- No item is equipped
+    self:Trace("No item is equipped")
     return true
   end
 
-  return self:GetRealItemLevel(equippedItemLink) > self:GetRealItemLevel(itemLink)
+  return self:GetRealItemLevel(equippedItemLink) > itemLevel
 end
 
 -- owner and itemLink must be valid
-local function PersonalLoot:EnumerateTradees(owner, itemLink)
+function PersonalLoot:EnumerateTradees(owner, itemLink)
   names = GetHomePartyInfo()
   if not names then
     self:Error("Can not get party members!")
