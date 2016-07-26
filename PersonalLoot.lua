@@ -145,8 +145,13 @@ function PersonalLoot:EquipSlotNameToInventoryName(name)
   return out
 end
 
-function PersonalLoot:IsTradable(owner, item)
-  local _, _, _, level, _, _, _, _, slotName = GetItemInfo(item)
+function PersonalLoot:GetRealItemLevel(owner, itemLink)
+  local equippedItemLevel = select(4, GetItemInfo(equippedItemLink))
+  self:Trace("Equipped item level: "..equippedItemLevel)
+end
+
+function PersonalLoot:IsTradable(owner, itemLink)
+  local slotName = select(9, GetItemInfo(itemLink))
   -- TODO: exit early on < epic
   if slotName == "" then
     return
@@ -177,10 +182,7 @@ function PersonalLoot:IsTradable(owner, item)
     return true
   end
 
-  local equippedItemLevel = select(4, GetItemInfo(equippedItemLink))
-  self:Trace("Equipped item level: "..equippedItemLevel)
-
-  return equippedItemLevel > level
+  return self:GetRealItemLevel(equippedItemLink) > self:GetRealItemLevel(itemLink)
 end
 
 function PersonalLoot:EnumerateTradees(owner, item_id)
