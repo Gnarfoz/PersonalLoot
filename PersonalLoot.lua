@@ -78,55 +78,62 @@ function PersonalLoot:ColouredPrint(message, colour)
   self:Print("|"..colour..message)
 end
 
-function contains(table, val)
+function table.isEmpty(table)
+  return next(table) == nil
+end
+
+function table.getIndex(table, val)
     for index, value in ipairs(table) do
         if value == val then
-            return true
+            return index
         end
     end
 
-    return false
+    return -1
 end
 
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
     local playerName = GetUnitName("playertarget")
+    playerName = "Fiddyon"
     self:InspectEquipment(playerName)
 end
 
 function PersonalLoot:InspectEquipment(playerName)
-    if playerName and CanInspect(playerName, false) then
+    if playerName and CanInspect(playerName) then
       self:RegisterEvent("INSPECT_READY")
-      self.currentPlayers.insert(playerName)
+      self:Trace("Starting equipment inspection for "..playerName.."...")
+      table.insert(self.currentPlayers, playerName)
       NotifyInspect(playerName)
     end
 end
 
-function PersonalLoot:INSPECT_READY(arg)
-  self:Trace(arg)
-  player = self.currentPlayers[0]
-  if not contains(self.currentPlayers, player) then
+function PersonalLoot:INSPECT_READY(fnName, playerGuid)
+  self:Trace("INSPECT_READY")
+  local _, _, _, _, _, playerName, _ = GetPlayerInfoByGUID(playerGuid)
+  if table.getIndex(self.currentPlayers, playerName) < 0 then
     return
   end
 
   -- Cache all of the equipment slots
   for id=0,19,1 do
-    link = GetInventoryItemLink(player, id)
+    link = GetInventoryItemLink(playerName, id)
     if not link then
-      distanceSquared, valid = UnitDistanceSquared(player)
+      distanceSquared, valid = UnitDistanceSquared(playerName)
       if not valid or distanceSquared >= INSPECT_DIST then
         ClearInspectPlayer()
-        self:Error(player.." is too far to inspect!")
+        self:Error(playerName.." is too far to inspect!")
         return
       end
     end
   end
 
-  self.currentPlayers.remove(player)
-  self:Vtrace("Finished inspecting "..player)
-  if self.currentPlayers then
+  -- getIndex again to make sure we don't have an outdated value
+  table.remove(self.currentPlayers, table.getIndex(self.currentPlayers, playerName))
+  self:Vtrace("Finished inspecting "..playerName)
+  if table.isEmpty(self.currentPlayers) then
     self:UnregisterEvent("INSPECT_READY")
     if self.isLootInspect then
-      self:LootInspection(player, self.currentLoot)
+      self:LootInspection(playerName, self.currentLoot)
     end
   end
 end
