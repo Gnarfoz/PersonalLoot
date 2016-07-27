@@ -35,11 +35,19 @@ local options = {
         },
         debug = {
           name = "Debug",
-          desc = "Turn isDebugging options on/off",
+          desc = "Turn debug messages on/off",
           type = "toggle",
           order = 2,
           set = function(info, val) PersonalLoot.isDebugging = val end,
           get = function(info) return PersonalLoot.isDebugging end,
+        },
+        debug = {
+          name = "Verbose",
+          desc = "Turn verbose debug messages on/off",
+          type = "toggle",
+          order = 2,
+          set = function(info, val) PersonalLoot.isVerbose = val end,
+          get = function(info) return PersonalLoot.isVerbose end,
         },
         allItemTypes = {
           name = "All Item Types",
