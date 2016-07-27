@@ -262,11 +262,7 @@ function PersonalLoot:IsEquipment(owner, itemLink)
 
   if not self.allItemTypes then
     if self.instanceType == "raid" and quality < ITEM_QUALITY_EPIC then
-<<<<<<< HEAD
-      self:Vtrace("Quality is "..quality.." so ignoring..")
-=======
       self:Trace("Quality is "..quality.." so ignoring...")
->>>>>>> origin/master
       return false
     elseif self.instanceType == "party" and quality < ITEM_QUALITY_RARE then
       self:Vtrace("Quality is "..quality.." so ignoring...")
