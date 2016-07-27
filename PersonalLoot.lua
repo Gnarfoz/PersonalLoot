@@ -288,6 +288,15 @@ function PersonalLoot:IsEquipment(owner, itemLink)
   return true
 end
 
+function PersonalLoot:WeaponIsTwoHanded(itemLink)
+  return select(9, GetItemInfo(itemLink)) == "INVTYPE_2HWEAPON"
+end
+
+-- unit must be being inspected
+function PersonalLoot:UnitIsFuryWarrior(unit)
+  return UnitClass(unit) == "Warrior" and GetInspectSpecialization() == FURY_WARRIOR_SPEC_ID
+end
+
 -- Inspect data must be ready before calling this
 -- TODO:
 -- might have to call ClearInspectPlayer() when we're done using
@@ -302,15 +311,14 @@ function PersonalLoot:IsTradable(owner, itemLink)
     return self:GetRealItemLevelBySlotName(owner, "Trinket0Slot") >= itemLevel
            and self:GetRealItemLevelBySlotName(owner, "Trinket1Slot") >= itemLevel
   elseif slotName == "WeaponSlot" then
-    if UnitClass(owner) == "Warrior" and GetInspectSpecialization() == FURY_WARRIOR_SPEC_ID then
-      -- TODO: implement
-      self:Vtrace(owner.." is a Fury Warrior, handle 2H in each hand.")
-      return false
+    -- WeaponSlot means it's either a 2H or 1H weapon without main hand or off
+    -- hand restriction.
+    -- Fury warriors can dual wield two handed weapons
+    if not self:WeaponIsTwoHanded() or self:UnitIsFuryWarrior(owner) then
+      return self:GetRealItemLevelBySlotName(owner, "MainHandSlot") >= itemLevel
+             and self:GetRealItemLevelBySlotName(owner, "SecondaryHandSlot") >= itemLevel
     end
-    -- TODO:
-    -- Only Hunters care about ranged weapons (what about wands?)
-    -- Handle main hand, off hand, shield
-    return false
+    return self:GetRealItemLevelBySlotName(owner, "MainHandSlot") >= itemLevel
   end
 
   local slotId = GetInventorySlotInfo(slotName)
