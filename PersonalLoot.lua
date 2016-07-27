@@ -217,26 +217,9 @@ function PersonalLoot:InvTypeToEquipSlotName(name)
   return out
 end
 
-local upgradeTable = {
-  ["529"] = 0,
-  ["530"] = 5,
-  ["531"] = 10,
-}
-
 -- itemLink must be valid
 function PersonalLoot:GetRealItemLevel(itemLink)
   local itemLevel = select(4, GetItemInfo(itemLink))
-  local numBonuses = select(14, strsplit(":", link, 15))
-  local affixes = select(15, strsplit(":", link, 15))
-
-  -- loop over item bonuses in search for upgrade
-  for i = 1, numBonuses+1 do
-      local bonusID = select(i, strsplit(":", affixes))
-      if upgradeTable[bonusID] ~= nil then
-          itemLevel = itemLevel + upgradeTable[bonusID]
-      end
-  end
-
   self:Trace(itemLink.." has item level "..itemLevel)
   return itemLevel
 end
