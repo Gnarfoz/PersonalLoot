@@ -1,4 +1,4 @@
-PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceConsole-3.0", "AceEvent-3.0")
+PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceComm-3.0", "AceConsole-3.0", "AceEvent-3.0")
 
 local INSPECT_DIST = 285*285
 local RED = "cffff0000"
@@ -11,6 +11,8 @@ local CLOTH = 2
 local LEATHER = 3
 local MAIL = 4
 local PLATE = 5
+
+local ANNOUNCER_NEGOTIATION_CHANNEL = "PersonalLootAnnouncerNegotiation"
 
 -- Options table
 local options = {
@@ -106,9 +108,27 @@ function table.getIndex(table, val)
     return -1
 end
 
+function PersonalLoot:Announce(message)
+  if not message then
+    self:Error("Announce called with a nil message")
+    return
+  end
+
+  if not self.isAnnouncer then
+    return
+  end
+
+  SendChatMessage(message, INSTANCE_CHAT, "COMMON", nil)
+end
+
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
     local playerName = GetUnitName("playertarget")
     self:InspectEquipment(playerName)
+end
+
+function PersonalLoot:GROUP_JOINED()
+  self:Trace("GROUP_JOINED")
+  self:TryToBecomeAnnouncer()
 end
 
 function PersonalLoot:InspectEquipment(playerName)
@@ -182,7 +202,7 @@ function PersonalLoot:LootInspection(owner, itemLink)
 
   if owner and itemLink then
     if self:IsTradable(owner, itemLink) then
-      self:Trace(itemLink.." owned by "..owner.." is tradable.")
+      self:Announce(itemLink.." owned by "..owner.." is tradable.")
       self:EnumerateTradees(owner, itemLink)
     else
       self:Trace(itemLink.." owned by "..owner.." is not tradable.")
@@ -448,6 +468,88 @@ function PersonalLoot:UnitCanUse(unit, itemLink)
   return true
 end
 
+function PersonalLoot:StopAnnouncing()
+  if self.isAnnouncer then
+    self:Trace("I'm no longer the announcer.")
+    self:SendCommMessage(ANNOUNCER_NEGOTIATION_CHANNEL, "LEAVING", "RAID")
+  end
+end
+
+function PersonalLoot:TryToBecomeAnnouncer()
+  self.isAnnouncer = true
+  self:SendCommMessage(ANNOUNCER_NEGOTIATION_CHANNEL, "ME?", "RAID")
+end
+
+function PersonalLoot:GetRaidLeader()
+  -- TODO: implement
+  return nil
+end
+
+function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
+  self:Trace("OnCommReceived: "..prefix..", "..message..", "..distribution..", "..sender)
+  if message == "LEAVING" then
+    self:TryToBecomeAnnouncer()
+    return
+  end
+
+  if not message == "ME?" then
+    return
+  end
+
+  if not self.isAnnouncer then
+    self:Vtrace("I'm not the announcer, so ignore it")
+    return
+  end
+
+  -- Priority for becoming the announcer is:
+  -- 1. Raid leader
+  -- 2. Raid leader's highest ranked guildy with the lowest alphabetical name
+  -- 3. Raid member with the lowest alphabetical name
+
+  -- 1.
+  if IsGroupLeader(sender) then
+    self:Vtrace("I'm not the announcer because I'm not the raid leader.")
+    self.isAnnouncer = false
+    return
+  end
+
+  local leader = self:GetRaidLeader()
+  local leaderGuild = GetGuildInfo(leader)
+  local senderGuild, _, senderGuildRank = GetGuildInfo(sender)
+  local guild, _, guildRank = GetGuildInfo("player")
+
+  -- 2.
+  if senderGuild == leaderGuild then
+    if not guild == leaderGuild then
+      self:Vtrace("I'm not the announcer because I'm not the raid leader's guildy.")
+      self.isAnnouncer = false
+      return
+    end
+
+    if senderGuildRank < guildRank then
+      self:Vtrace("I'm not the announcer because I have a worse guild rank.")
+      self.isAnnouncer = false
+      return
+    elseif senderGuildRank == guildRank then
+      if sender < UnitName("player") then
+        self:Vtrace("I'm not the announcer because I'm an alphabetically challenged guildy.")
+        self.isAnnouncer = false
+        return
+      end
+    end
+  -- 3.
+  elseif not guild == leaderGuild then
+    if sender < UnitName("player") then
+      self:Vtrace("I'm not the announcer I'm an alphabetically challenged random.")
+      self.isAnnouncer = false
+      return
+    end
+  end
+
+  self:Vtrace("I'm pretty important, I should remain the announcer...")
+  self:TryToBecomeAnnouncer()
+end
+
 function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
   self.isDebugging = true
@@ -456,15 +558,22 @@ function PersonalLoot:OnEnable()
   self.isLootInspect = false
   self.currentPlayers = {}
   self.currentLoot = nil
+
   -- Reloading the UI doesn't result in these events being fired, so force them
   self:PARTY_LOOT_METHOD_CHANGED()
   self:ZONE_CHANGED_NEW_AREA()
+  self:RegisterEvent("GROUP_JOINED")
   self:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
   self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   -- self:RegisterEvent("PLAYER_TARGET_CHANGED")
+
+  self:RegisterComm(ANNOUNCER_NEGOTIATION_CHANNEL, self:OnCommReceived)
+
+  self:TryToBecomeAnnouncer()
 end
 
 function PersonalLoot:OnDisable()
   self:Trace("OnDisable")
+  self:StopAnnouncing()
   self:UnregisterAllEvents()
 end
