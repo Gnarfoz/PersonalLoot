@@ -52,6 +52,7 @@ local options = {
     }
   }
 }
+
 -- Add options table as slash command and add it to the Bliiz interface
 LibStub("AceConfig-3.0"):RegisterOptionsTable("PersonalLoot", options, "pl")
 LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("PersonalLoot", options)
@@ -216,9 +217,26 @@ function PersonalLoot:InvTypeToEquipSlotName(name)
   return out
 end
 
--- owner and itemLink must be valid
+local upgradeTable = {
+  ["529"] = 0,
+  ["530"] = 5,
+  ["531"] = 10,
+}
+
+-- itemLink must be valid
 function PersonalLoot:GetRealItemLevel(itemLink)
   local itemLevel = select(4, GetItemInfo(itemLink))
+  local numBonuses = select(14, strsplit(":", link, 15))
+  local affixes = select(15, strsplit(":", link, 15))
+
+  -- loop over item bonuses in search for upgrade
+  for i = 1, numBonuses+1 do
+      local bonusID = select(i, strsplit(":", affixes))
+      if upgradeTable[bonusID] ~= nil then
+          itemLevel = itemLevel + upgradeTable[bonusID]
+      end
+  end
+
   self:Trace(itemLink.." has item level "..itemLevel)
   return itemLevel
 end
@@ -244,7 +262,11 @@ function PersonalLoot:IsEquipment(owner, itemLink)
 
   if not self.allItemTypes then
     if self.instanceType == "raid" and quality < ITEM_QUALITY_EPIC then
+<<<<<<< HEAD
       self:Vtrace("Quality is "..quality.." so ignoring..")
+=======
+      self:Trace("Quality is "..quality.." so ignoring...")
+>>>>>>> origin/master
       return false
     elseif self.instanceType == "party" and quality < ITEM_QUALITY_RARE then
       self:Vtrace("Quality is "..quality.." so ignoring...")
