@@ -5,6 +5,7 @@ local RED = "cffff0000"
 local PLAYER = "player"
 local ITEM_QUALITY_RARE = 3
 local ITEM_QUALITY_EPIC = 4
+local FURY_WARRIOR_SPEC_ID = 72
 
 -- Options table
 local options = {
@@ -141,9 +142,9 @@ end
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
   local owner, itemLink = PLAYER, nil
 
-  _, _, itemLink = string.find(message, "You receive loot: (|.+|r)")
+  _, _, itemLink = string.find(message, "You receive.+loot: (|.+|r)")
   if not itemLink then
-    _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
+    _, _, owner, itemLink = string.find(message, "(.+) receives.+loot: (|.+|r)")
   end
 
   if not (owner and itemLink) then
@@ -306,6 +307,7 @@ function PersonalLoot:IsEquipment(owner, itemLink)
   return true
 end
 
+-- Inspect data must be ready before calling this
 -- TODO:
 -- might have to call ClearInspectPlayer() when we're done using
 -- the inspected info
@@ -318,9 +320,13 @@ function PersonalLoot:IsTradable(owner, itemLink)
   elseif slotName == "TrinketSlot" then
     return self:GetRealItemLevelBySlotName(owner, "Trinket0Slot") >= itemLevel
            and self:GetRealItemLevelBySlotName(owner, "Trinket1Slot") >= itemLevel
-   elseif slotName == "WeaponSlot" then
+  elseif slotName == "WeaponSlot" then
+    if UnitClass(owner) == "Warrior" and GetInspectSpecialization() == FURY_WARRIOR_SPEC_ID then
+      -- TODO: implement
+      self:Vtrace(owner.." is a Fury Warrior, handle 2H in each hand.")
+      return false
+    end
     -- TODO:
-    -- Fury warriors can wield 2h in each hand
     -- Only Hunters care about ranged weapons (what about wands?)
     -- Handle main hand, off hand, shield
     return false
