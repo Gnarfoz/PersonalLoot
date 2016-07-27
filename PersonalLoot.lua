@@ -181,7 +181,7 @@ end
 
 function PersonalLoot:PARTY_LOOT_METHOD_CHANGED()
   local method = GetLootMethod()
-  self:Trace("PARTY_LOOT_METHOD_CHANGED: "..method)
+  self:Vtrace("PARTY_LOOT_METHOD_CHANGED: "..method)
   self.isPersonalLoot = method == "personalloot"
   self:UpdateChatMsgLootRegistration()
 end
