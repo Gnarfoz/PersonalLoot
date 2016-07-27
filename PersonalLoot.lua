@@ -78,6 +78,16 @@ function PersonalLoot:ColouredPrint(message, colour)
   self:Print("|"..colour..message)
 end
 
+function contains(table, val)
+    for index, value in ipairs(table) do
+        if value == val then
+            return true
+        end
+    end
+
+    return false
+end
+
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
     local playerName = GetUnitName("playertarget")
     self:InspectEquipment(playerName)
@@ -86,14 +96,18 @@ end
 function PersonalLoot:InspectEquipment(playerName)
     if playerName and CanInspect(playerName, false) then
       self:RegisterEvent("INSPECT_READY")
-      self.currentPlayer = playerName
+      self.currentPlayers.insert(playerName)
       NotifyInspect(playerName)
     end
 end
 
-function PersonalLoot:INSPECT_READY()
-  self:UnregisterEvent("INSPECT_READY")
-  player = self.currentPlayer
+function PersonalLoot:INSPECT_READY(arg)
+  self:Trace(arg)
+  player = self.currentPlayers[0]
+  if not contains(self.currentPlayers, player) then
+    return
+  end
+
   -- Cache all of the equipment slots
   for id=0,19,1 do
     link = GetInventoryItemLink(player, id)
@@ -107,10 +121,14 @@ function PersonalLoot:INSPECT_READY()
     end
   end
 
-  self:RegisterEvent("INSPECT_READY")
+  self.currentPlayers.remove(player)
   self:Vtrace("Finished inspecting "..player)
-  -- TODO: Throw an event instead
-  self:LootInspection(player, self.currentLoot)
+  if self.currentPlayers then
+    self:UnregisterEvent("INSPECT_READY")
+    if self.isLootInspect then
+      self:LootInspection(player, self.currentLoot)
+    end
+  end
 end
 
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
@@ -133,6 +151,7 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
 
   if owner ~= PLAYER then
     self.currentLoot = itemLink
+    self.isLootInspect = true
     self:InspectEquipment(owner)
   else
     self:LootInspection(owner, itemLink)
@@ -140,6 +159,8 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
 end
 
 function PersonalLoot:LootInspection(owner, itemLink)
+  self.isLootInspect = false
+
   if owner and itemLink then
     if self:IsTradable(owner, itemLink) then
       self:Trace(itemLink.." owned by "..owner.." is tradable.")
@@ -161,7 +182,7 @@ end
 
 function PersonalLoot:ZONE_CHANGED_NEW_AREA()
   self.instanceType = select(2, IsInInstance())
-  self:Trace("ZONE_CHANGED_NEW_AREA: "..self.instanceType)
+  self:Vtrace("ZONE_CHANGED_NEW_AREA: "..self.instanceType)
   self:UpdateChatMsgLootRegistration()
 end
 
@@ -335,14 +356,15 @@ function PersonalLoot:OnEnable()
   self.isDebugging = true
   self.isVerbose = false
   self.allItemTypes = true
-  self.currentPlayer = nil
+  self.isLootInspect = false
+  self.currentPlayers = {}
   self.currentLoot = nil
   -- Reloading the UI doesn't result in these events being fired, so force them
   self:PARTY_LOOT_METHOD_CHANGED()
   self:ZONE_CHANGED_NEW_AREA()
   self:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
   self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-  -- self:RegisterEvent("PLAYER_TARGET_CHANGED")
+  self:RegisterEvent("PLAYER_TARGET_CHANGED")
 end
 
 function PersonalLoot:OnDisable()
