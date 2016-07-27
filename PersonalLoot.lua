@@ -63,8 +63,18 @@ function PersonalLoot:Trace(message)
   end
 end
 
+function PersonalLoot:Vtrace(message)
+  if self.isVerbose then
+    self:Trace(message)
+  end
+end
+
 function PersonalLoot:Error(message)
-  self:Print("|"..RED..message)
+  self:ColouredPrint(message, RED)
+end
+
+function PersonalLoot:ColouredPrint(message, colour)
+  self:Print("|"..colour..message)
 end
 
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
@@ -82,23 +92,24 @@ end
 
 function PersonalLoot:INSPECT_READY()
   self:UnregisterEvent("INSPECT_READY")
-  owner = self.currentPlayer
+  player = self.currentPlayer
   -- Cache all of the equipment slots
   for id=0,19,1 do
-    link = GetInventoryItemLink(owner, id)
+    link = GetInventoryItemLink(player, id)
     if not link then
-      distanceSquared, valid = UnitDistanceSquared(owner)
+      distanceSquared, valid = UnitDistanceSquared(player)
       if not valid or distanceSquared >= INSPECT_DIST then
         ClearInspectPlayer()
-        self:Error(owner.." is too far to inspect!")
+        self:Error(player.." is too far to inspect!")
         return
       end
     end
   end
+
   self:RegisterEvent("INSPECT_READY")
-  self:Trace("Finished inspecting "..owner)
+  self:Vtrace("Finished inspecting "..player)
   -- TODO: Throw an event instead
-  self:LootInspection(owner, self.currentLoot)
+  self:LootInspection(player, self.currentLoot)
 end
 
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
@@ -110,12 +121,12 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
   end
 
   if not (owner and itemLink) then
-    self:Trace("Owner or itemLink is empty in CHAT_MSG_LOOT. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
+    self:Vtrace("Owner or itemLink is empty in CHAT_MSG_LOOT. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
     return
   end
 
   if not self:IsEquipment(owner, itemLink) then
-    self:Trace(itemLink.." is not an equippable item so ignoring...")
+    self:Vtrace(itemLink.." is not an equippable item so ignoring...")
     return
   end
 
@@ -136,7 +147,7 @@ function PersonalLoot:LootInspection(owner, itemLink)
       self:Trace(itemLink.." owned by "..owner.." is not tradable.")
     end
   else
-    self:Trace("Owner or itemLink is empty in LootInspection. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
+    self:Error("Owner or itemLink is empty in LootInspection. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
   end
 end
 
@@ -199,7 +210,7 @@ function PersonalLoot:InvTypeToEquipSlotName(name)
     self:Error("Unable to convert "..name)
     return nil
   else
-    self:Trace("Converted "..name.." to "..out)
+    self:Vtrace("Converted "..name.." to "..out)
   end
 
   return out
@@ -227,16 +238,16 @@ function PersonalLoot:IsEquipment(owner, itemLink)
 
   if invType == "" then
     -- It's not an equippable item
-    self:Trace(itemLink.." has no slotName")
+    self:Vtrace(itemLink.." has no slotName")
     return false
   end
 
   if not self.allItemTypes then
     if self.instanceType == "raid" and quality < ITEM_QUALITY_EPIC then
-      self:Trace("Quality is "..quality.." so ignoring..")
+      self:Vtrace("Quality is "..quality.." so ignoring..")
       return false
     elseif self.instanceType == "party" and quality < ITEM_QUALITY_RARE then
-      self:Trace("Quality is "..quality.." so ignoring...")
+      self:Vtrace("Quality is "..quality.." so ignoring...")
       return false
     end
   end
@@ -249,7 +260,9 @@ function PersonalLoot:IsEquipment(owner, itemLink)
   return true
 end
 
--- TODO: have to call ClearInspectPlayer() after we're done using the inspected info
+-- TODO:
+-- might have to call ClearInspectPlayer() when we're done using
+-- the inspected info
 function PersonalLoot:IsTradable(owner, itemLink)
   local itemLevel = self:GetRealItemLevel(itemLink)
 
@@ -268,7 +281,7 @@ function PersonalLoot:IsTradable(owner, itemLink)
   end
 
   local slotId = GetInventorySlotInfo(slotName)
-  self:Trace("slot id "..slotId)
+  self:Vtrace("slot id "..slotId)
 
   local equippedItemLink = GetInventoryItemLink(owner, slotId)
   if equippedItemLink == "" then
@@ -302,6 +315,7 @@ end
 function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
   self.isDebugging = true
+  self.isVerbose = false
   self.allItemTypes = true
   self.currentPlayer = nil
   self.currentLoot = nil
