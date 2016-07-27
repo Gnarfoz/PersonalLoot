@@ -281,7 +281,6 @@ function PersonalLoot:InvTypeToEquipSlotName(name)
 
   if not out then
     self:Error("Unable to convert "..name)
-    return nil
   else
     self:Vtrace("Converted "..name.." to "..out)
   end
