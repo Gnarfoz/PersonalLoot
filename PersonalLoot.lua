@@ -95,21 +95,19 @@ end
 
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
     local playerName = GetUnitName("playertarget")
-    playerName = "Fiddyon"
     self:InspectEquipment(playerName)
 end
 
 function PersonalLoot:InspectEquipment(playerName)
     if playerName and CanInspect(playerName) then
       self:RegisterEvent("INSPECT_READY")
-      self:Trace("Starting equipment inspection for "..playerName.."...")
+      self:Vtrace("Starting equipment inspection for "..playerName.."...")
       table.insert(self.currentPlayers, playerName)
       NotifyInspect(playerName)
     end
 end
 
 function PersonalLoot:INSPECT_READY(fnName, playerGuid)
-  self:Trace("INSPECT_READY")
   local _, _, _, _, _, playerName, _ = GetPlayerInfoByGUID(playerGuid)
   if table.getIndex(self.currentPlayers, playerName) < 0 then
     return
@@ -360,7 +358,7 @@ function PersonalLoot:OnEnable()
   self:ZONE_CHANGED_NEW_AREA()
   self:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
   self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-  self:RegisterEvent("PLAYER_TARGET_CHANGED")
+  -- self:RegisterEvent("PLAYER_TARGET_CHANGED")
 end
 
 function PersonalLoot:OnDisable()
