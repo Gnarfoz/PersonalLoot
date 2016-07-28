@@ -11,6 +11,11 @@ local CLOTH = 2
 local LEATHER = 3
 local MAIL = 4
 local PLATE = 5
+local RESTORATION_DRUID = 105
+local BALANCE_DRUID = 102
+local MISTWEAVER_MONK = 270
+local HOLY_PALADIN = 65
+local ENHANCEMENT_SHAMAN = 263
 
 local ANNOUNCER_NEGOTIATION_CHANNEL = "PLAnnNeg"
 
@@ -446,6 +451,63 @@ function PersonalLoot:UnitCanUseArmorType(unit, armorTypeId)
   return false
 end
 
+function PersonalLoot:ItemHasPrimaryStat(itemLink, statId)
+  -- TODO: implement
+  -- if statId is nil then check whether the item has no primary stat
+end
+
+-- The unit must be being inspected and have inspect data available
+-- Returns INTELLECT, STRENGTH, AGILITY or nil
+function PersonalLoot:GetUnitPrimaryStat(unit)
+  local unitClass = UnitClass(unit)
+  local unitSpec = GetInspectSpecialization()
+
+  if unitClass == "Death Knight" then
+    return STRENGTH
+  else if unitClass == "Demon Hunter" then
+    return AGILITY
+  else if unitClass == "Druid" then
+    if unitSpec == RESTORATION_DRUID or unitSpec == BALANCE_DRUID then
+      return INTELLECT
+    else
+      return AGILITY
+    end
+  else if unitClass == "Hunter" then
+    return AGILITY
+  else if unitClass == "Mage" then
+    return INTELLECT
+  else if unitClass == "Monk" then
+    if unitSpec == MISTWEAVER_MONK then
+      return INTELLECT
+    else
+      return AGILITY
+    end
+  else if unitClass == "Paladin" then
+    if unitSpec == HOLY_PALADIN then
+      return INTELLECT
+    else
+      return AGILITY
+    end
+  else if unitClass == "Priest" then
+    return INTELLECT
+  else if unitClass == "Rogue" then
+    return AGILITY
+  else if unitClass == "Shaman" then
+    if unitSpec == ENHANCEMENT_SHAMAN then
+      return AGILITY
+    else
+      return INTELLECT
+    end
+  else if unitClass == "Warlock" then
+    return INTELLECT
+  else if unitClass == "Warrior" then
+    return STRENGTH
+  end
+
+  self:Error("Unknown primary stat for "..unit)
+  return nil
+end
+
 function PersonalLoot:UnitCanUse(unit, itemLink)
   local classRestriction = self:GetArmorClassRestriction(itemLink)
 
@@ -462,8 +524,13 @@ function PersonalLoot:UnitCanUse(unit, itemLink)
   end
 
   if armorTypeId == MISCELLANEOUS then
-    self:Vtrace("TODO: Handle MISCELLANEOUS item types")
+    -- Legion accessories can have no primary stat, making it usable by all
+    if not self:ItemHasPrimaryStat(itemLink, nil) and not self:ItemHasPrimaryStat(itemLink, self:GetUnitPrimaryStat(unit)) then
+      return false
+    end
   end
+
+  -- TODO: Handle relics
 
   return true
 end
