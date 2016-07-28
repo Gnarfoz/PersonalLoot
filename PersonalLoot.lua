@@ -55,7 +55,7 @@ local options = {
           name = "Verbose",
           desc = "Turn verbose debug messages on/off",
           type = "toggle",
-          order = 2,
+          order = 3,
           set = function(info, val) PersonalLoot.db.char.isVerbose = val end,
           get = function(info) return PersonalLoot.db.char.isVerbose end,
         },
@@ -63,7 +63,7 @@ local options = {
           name = "All Item Types",
           desc = "Allows all item types to trigger PersonalLoot",
           type = "toggle",
-          order = 3,
+          order = 4,
           set = function(info, val) PersonalLoot.db.char.allItemTypes = val end,
           get = function(info) return PersonalLoot.db.char.allItemTypes end,
         }
