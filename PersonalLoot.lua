@@ -2,15 +2,10 @@ PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceComm-3.0", "
 
 local INSPECT_DIST = 285*285
 local RED = "cffff0000"
-local PLAYER = "player"
 local ITEM_QUALITY_RARE = 3
 local ITEM_QUALITY_EPIC = 4
 local FURY_WARRIOR_SPEC_ID = 72
 local MISCELLANEOUS = 1
-local CLOTH = 2
-local LEATHER = 3
-local MAIL = 4
-local PLATE = 5
 local STRENGTH = 1
 local AGILITY = 2
 local INTELLECT = 4
@@ -121,7 +116,23 @@ function PersonalLoot:Announce(message)
     return
   end
 
-  SendChatMessage(message, INSTANCE_CHAT, "COMMON", nil)
+  local chatType
+
+  if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+    chatType = "INSTANCE_CHAT"
+  elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
+    if self.instanceType == "raid" then
+      chatType = "RAID"
+    else
+      chatType = "PARTY"
+    end
+  end
+
+  if chatType then
+    SendChatMessage(message, chatType, "COMMON", nil)
+  else
+    self:Print(message)
+  end
 end
 
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
@@ -179,10 +190,12 @@ function PersonalLoot:ItemIsBindOnEquip(itemLink)
 end
 
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
-  local owner, itemLink = PLAYER, nil
+  local owner, itemLink
 
   _, _, itemLink = string.find(message, "You receive loot: (|.+|r)")
-  if not itemLink then
+  if itemLink then
+    owner = UnitName("player")
+  else
     _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
   end
 
@@ -192,15 +205,14 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
   end
 
   if not self:IsEquipment(owner, itemLink) then
-    self:Vtrace(itemLink.." is not an equippable item so ignoring...")
     return
   end
 
   if self:ItemIsBindOnEquip(itemLink) then
-    self:Announce(itemLink.." is Bind on Equip")
+    self:Announce(itemLink.." is Bind on Equip.")
   end
 
-  if owner ~= PLAYER then
+  if not UnitIsUnit("player", owner) then
     self.currentLoot = itemLink
     self.isLootInspect = true
     self:InspectEquipment(owner)
@@ -297,8 +309,16 @@ local upgradeTable = {
 -- itemLink must be valid
 function PersonalLoot:GetRealItemLevel(itemLink)
   local itemLevel = select(4, GetItemInfo(itemLink))
-  local numBonuses = select(14, strsplit(":", link, 15))
-  local affixes = select(15, strsplit(":", link, 15))
+
+  local numBonuses = select(14, strsplit(":", itemLink, 15))
+  if numBonuses == "" then
+    return itemLevel
+  end
+
+  self:Print("numBonuses = "..numBonuses)
+  numBonuses = tonumber(numBonuses)
+
+  local affixes = select(15, strsplit(":", itemLink, 15))
 
   -- loop over item bonuses in search for upgrade
   for i = 1, numBonuses+1 do
@@ -311,8 +331,14 @@ function PersonalLoot:GetRealItemLevel(itemLink)
   return itemLevel
 end
 
+-- Returns -1 if it can't get the real item level
 function PersonalLoot:GetRealItemLevelBySlotName(owner, slotName)
+  self:Vtrace("GetRealItemLevelBySlotName("..owner..", "..slotName..")")
   local slotId = GetInventorySlotInfo(slotName)
+  if not slotId then
+    return -1
+  end
+  self:Vtrace("slotId = "..tostring(slotId))
   return self:GetRealItemLevel(GetInventoryItemLink(owner, slotId))
 end
 
@@ -326,7 +352,7 @@ function PersonalLoot:IsEquipment(owner, itemLink)
 
   if invType == "" then
     -- It's not an equippable item
-    self:Vtrace(itemLink.." has no slotName")
+    self:Vtrace(itemLink.." has no slotName, it's not equippable.")
     return false
   end
 
@@ -374,7 +400,7 @@ function PersonalLoot:IsTradable(owner, itemLink)
     -- WeaponSlot means it's either a 2H or 1H weapon without main hand or off
     -- hand restriction.
     -- Fury warriors can dual wield two handed weapons
-    if not self:WeaponIsTwoHanded() or self:UnitIsFuryWarrior(owner) then
+    if not self:WeaponIsTwoHanded(itemLink) or self:UnitIsFuryWarrior(owner) then
       return self:GetRealItemLevelBySlotName(owner, "MainHandSlot") >= itemLevel
              and self:GetRealItemLevelBySlotName(owner, "SecondaryHandSlot") >= itemLevel
     end
@@ -385,7 +411,7 @@ function PersonalLoot:IsTradable(owner, itemLink)
   self:Vtrace("slot id "..slotId)
 
   local equippedItemLink = GetInventoryItemLink(owner, slotId)
-  if equippedItemLink == "" then
+  if not equippedItemLink then
     self:Trace("No item is equipped in "..slotName)
     return true
   end
@@ -395,24 +421,27 @@ end
 
 -- owner and itemLink must be valid
 function PersonalLoot:EnumerateTradees(owner, itemLink)
-  names = GetHomePartyInfo()
-  if not names then
-    self:Error("Can not get party members!")
+  -- TODO: if self.instanceType == "raid"...
+
+  local groupSize = GetNumGroupMembers()
+  if groupSize < 1 then
+    self:Error("Group size is "..tostring(groupSize))
     return
   end
 
-  for index, name in pairs(names) do
-    if self:UnitCanUse(name, itemLink) then
-      self:InspectEquipment(name)
+  for i = 1, groupSize, 1 do
+    local name = GetRaidRosterInfo(i)
+    if not UnitIsUnit("player", name) then
+      if self:UnitCanUse(name, itemLink) then
+        self:InspectEquipment(name)
+      end
     end
   end
 end
 
--- Return MISCELLANEOUS, CLOTH, LEATHER, MAIL or PLATE
-function PersonalLoot:GetArmorTypeIndex(itemLink)
-  local _, _, _, _, _, class, subClass = GetItemInfo(itemLink)
-  local classIndex, subClassIndex = GetAuctionInvTypes(class, subClass)
-  return subClassIndex
+-- Returns an itemType, see GetItemInfo's return values
+function PersonalLoot:GetArmorType(itemLink)
+  return select(7, GetItemInfo(itemLink))
 end
 
 -- Returns a player class index or nil
@@ -421,37 +450,37 @@ function PersonalLoot:GetArmorClassRestriction(itemLink)
   return nil
 end
 
-function PersonalLoot:UnitCanUseArmorType(unit, armorTypeId)
-  if armorTypeId == MISCELLANEOUS then
+function PersonalLoot:UnitCanUseArmorType(unit, armorType)
+  if armorType == "Miscellaneous" then
     return true
   end
 
   local unitClass = UnitClass(unit)
 
   if unitClass == "Death Knight" then
-    return armorTypeId == PLATE
+    return armorType == "Plate"
   elseif unitClass == "Demon Hunter" then
-    return armorTypeId == LEATHER
+    return armorType == "Leather"
   elseif unitClass == "Druid" then
-    return armorTypeId == LEATHER
+    return armorType == "Leather"
   elseif unitClass == "Hunter" then
-    return armorTypeId == MAIL
+    return armorType == "Mail"
   elseif unitClass == "Mage" then
-    return armorTypeId == CLOTH
+    return armorType == "Cloth"
   elseif unitClass == "Monk" then
-    return armorTypeId == LEATHER
+    return armorType == "Leather"
   elseif unitClass == "Paladin" then
-    return armorTypeId == PLATE
+    return armorType == "Plate"
   elseif unitClass == "Priest" then
-    return armorTypeId == CLOTH
+    return armorType == "Cloth"
   elseif unitClass == "Rogue" then
-    return armorTypeId == LEATHER
+    return armorType == "Leather"
   elseif unitClass == "Shaman" then
-    return armorTypeId == MAIL
+    return armorType == "Mail"
   elseif unitClass == "Warlock" then
-    return armorTypeId == CLOTH
+    return armorType == "Cloth"
   elseif unitClass == "Warrior" then
-    return armorTypeId == PLATE
+    return armorType == "Plate"
   end
 
   self:Error("Unknown unit class "..unitClass)
@@ -512,15 +541,15 @@ function PersonalLoot:UnitCanUse(unit, itemLink)
     return false
   end
 
-  local armorTypeId = self:GetArmorTypeIndex(itemLink)
+  local armorType = self:GetArmorType(itemLink)
 
-  if not self:UnitCanUseArmorType(unit, armorTypeId) then
-    self:Vtrace(unit.." can't use armor type "..tostring(armorTypeId))
+  if not self:UnitCanUseArmorType(unit, armorType) then
+    self:Vtrace(unit.." can't use armor type "..tostring(armorType))
     return false
   end
 
-  if armorTypeId == MISCELLANEOUS then
-    if not self:UnitUsesPrimayStatsOfItem(unit, itemLink) then
+  if armorType == "Miscellaneous" then
+    if not self:UnitUsesPrimaryStatsOfItem(unit, itemLink) then
       return false
     end
   end
