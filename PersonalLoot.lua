@@ -6,6 +6,11 @@ local PLAYER = "player"
 local ITEM_QUALITY_RARE = 3
 local ITEM_QUALITY_EPIC = 4
 local FURY_WARRIOR_SPEC_ID = 72
+local MISCELLANEOUS = 1
+local CLOTH = 2
+local LEATHER = 3
+local MAIL = 4
+local PLATE = 5
 
 -- Options table
 local options = {
@@ -372,8 +377,74 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
   end
 end
 
+-- Return MISCELLANEOUS, CLOTH, LEATHER, MAIL or PLATE
+function PersonalLoot:GetArmorTypeIndex(itemLink)
+  local _, _, _, _, _, class, subClass = GetItemInfo(itemLink)
+  local classIndex, subClassIndex = GetAuctionInvTypes(class, subClass)
+  return subClassIndex
+end
+
+-- Returns a player class index or nil
+function PersonalLoot:GetArmorClassRestriction(itemLink)
+  return nil
+end
+
+function PersonalLoot:UnitCanUseArmorType(unit, armorTypeId)
+  if armorTypeId == MISCELLANEOUS then
+    return true
+  end
+
+  local unitClass = UnitClass(unit)
+
+  if unitClass == "Death Knight" then
+    return armorTypeId == PLATE
+  elseif unitClass == "Demon Hunter" then
+    return armorTypeId == LEATHER
+  elseif unitClass == "Druid" then
+    return armorTypeId == LEATHER
+  elseif unitClass == "Hunter" then
+    return armorTypeId == MAIL
+  elseif unitClass == "Mage" then
+    return armorTypeId == CLOTH
+  elseif unitClass == "Monk" then
+    return armorTypeId == LEATHER
+  elseif unitClass == "Paladin" then
+    return armorTypeId == PLATE
+  elseif unitClass == "Priest" then
+    return armorTypeId == CLOTH
+  elseif unitClass == "Rogue" then
+    return armorTypeId == LEATHER
+  elseif unitClass == "Shaman" then
+    return armorTypeId == MAIL
+  elseif unitClass == "Warlock" then
+    return armorTypeId == CLOTH
+  elseif unitClass == "Warrior" then
+    return armorTypeId == PLATE
+  end
+
+  self:Error("Unknown unit class "..unitClass)
+  return false
+end
+
 function PersonalLoot:UnitCanUse(unit, itemLink)
-  -- TODO: Implement this
+  local classRestriction = self:GetArmorClassRestriction(itemLink)
+
+  if classRestriction and classRestriction ~= unitClass then
+    self:Vtrace(unit.." can't use items restricted to class "..tostring(classRestriction))
+    return false
+  end
+
+  local armorTypeId = self:GetArmorTypeIndex(itemLink)
+
+  if not UnitCanUseArmorType(unit, armorTypeId) then
+    self:Vtrace(unit.." can't use armor type "..tostring(armorTypeId))
+    return false
+  end
+
+  if armorTypeId == MISCELLANEOUS then
+    self:Vtrace("TODO: Handle MISCELLANEOUS item types")
+  end
+
   return true
 end
 
