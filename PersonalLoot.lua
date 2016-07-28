@@ -476,27 +476,27 @@ function PersonalLoot:UnitUsesPrimaryStatsOfItem(unit, itemLink)
 
   if unitClass == "Death Knight" then
     return hasStrength
-  else if unitClass == "Demon Hunter" then
+  elseif unitClass == "Demon Hunter" then
     return AGILITY
-  else if unitClass == "Druid" then
+  elseif unitClass == "Druid" then
     return hasIntellect or hasAgility
-  else if unitClass == "Hunter" then
+  elseif unitClass == "Hunter" then
     return hasAgility
-  else if unitClass == "Mage" then
+  elseif unitClass == "Mage" then
     return hasIntellect
-  else if unitClass == "Monk" then
+  elseif unitClass == "Monk" then
     return hasAgility or hasIntellect
-  else if unitClass == "Paladin" then
+  elseif unitClass == "Paladin" then
     return hasIntellect or hasStrength
-  else if unitClass == "Priest" then
+  elseif unitClass == "Priest" then
     return hasIntellect
-  else if unitClass == "Rogue" then
+  elseif unitClass == "Rogue" then
     return hasAgility
-  else if unitClass == "Shaman" then
+  elseif unitClass == "Shaman" then
     return hasAgility or hasIntellect
-  else if unitClass == "Warlock" then
+  elseif unitClass == "Warlock" then
     return hasIntellect
-  else if unitClass == "Warrior" then
+  elseif unitClass == "Warrior" then
     return hasStrength
   end
 
@@ -637,7 +637,7 @@ function PersonalLoot:OnEnable()
   self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   -- self:RegisterEvent("PLAYER_TARGET_CHANGED")
 
-  self:RegisterComm(ANNOUNCER_NEGOTIATION_CHANNEL, self:OnCommReceived)
+  self:RegisterComm(ANNOUNCER_NEGOTIATION_CHANNEL, self.OnCommReceived)
 
   self:TryToBecomeAnnouncer()
 end
