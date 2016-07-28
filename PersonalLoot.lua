@@ -48,24 +48,24 @@ local options = {
           desc = "Turn debug messages on/off",
           type = "toggle",
           order = 2,
-          set = function(info, val) PersonalLoot.isDebugging = val end,
-          get = function(info) return PersonalLoot.isDebugging end,
+          set = function(info, val) PersonalLoot.db.char.isDebugging = val end,
+          get = function(info) return PersonalLoot.db.char.isDebugging end,
         },
-        debug = {
+        verbose = {
           name = "Verbose",
           desc = "Turn verbose debug messages on/off",
           type = "toggle",
           order = 2,
-          set = function(info, val) PersonalLoot.isVerbose = val end,
-          get = function(info) return PersonalLoot.isVerbose end,
+          set = function(info, val) PersonalLoot.db.char.isVerbose = val end,
+          get = function(info) return PersonalLoot.db.char.isVerbose end,
         },
         allItemTypes = {
           name = "All Item Types",
           desc = "Allows all item types to trigger PersonalLoot",
           type = "toggle",
           order = 3,
-          set = function(info, val) PersonalLoot.allItemTypes = val end,
-          get = function(info) return PersonalLoot.allItemTypes end,
+          set = function(info, val) PersonalLoot.db.char.allItemTypes = val end,
+          get = function(info) return PersonalLoot.db.char.allItemTypes end,
         }
       }
     }
@@ -78,13 +78,13 @@ LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("PersonalLoot", options)
 LibStub("AceConfigDialog-3.0"):AddToBlizOptions("PersonalLoot", "PersonalLoot")
 
 function PersonalLoot:Trace(message)
-  if self.isDebugging then
+  if self.db.char.isDebugging then
     self:Print(message)
   end
 end
 
 function PersonalLoot:Vtrace(message)
-  if self.isVerbose then
+  if self.db.char.isVerbose then
     self:Trace(message)
   end
 end
@@ -238,7 +238,7 @@ function PersonalLoot:ZONE_CHANGED_NEW_AREA()
 end
 
 function PersonalLoot:UpdateChatMsgLootRegistration()
-  if (self.isDebugging or self.instanceType == "raid") and self.isPersonalLoot then
+  if (self.db.char.isDebugging or self.instanceType == "raid") and self.isPersonalLoot then
     self:RegisterEvent("CHAT_MSG_LOOT")
   else
     self:UnregisterEvent("CHAT_MSG_LOOT")
@@ -331,7 +331,7 @@ function PersonalLoot:IsEquipment(owner, itemLink)
     return false
   end
 
-  if not self.allItemTypes then
+  if not self.db.char.allItemTypes then
     if self.instanceType == "raid" and quality < ITEM_QUALITY_EPIC then
       self:Trace("Quality is "..quality.." so ignoring...")
       return false
@@ -613,11 +613,19 @@ function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
   self:TryToBecomeAnnouncer()
 end
 
+function PersonalLoot:OnInitialize()
+  local defaults = {
+    char = {
+      isDebugging = false,
+      isVerbose = false,
+      allItemTypes = false,
+    }
+  }
+  self.db = LibStub("AceDB-3.0"):New("PersonalLootDB", defaults)
+end
+
 function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
-  self.isDebugging = true
-  self.isVerbose = false
-  self.allItemTypes = true
   self.isLootInspect = false
   self.currentPlayers = {}
   self.currentLoot = nil

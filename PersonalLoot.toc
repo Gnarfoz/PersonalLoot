@@ -2,6 +2,7 @@
 ## Title: PersonalLoot
 ## Author: Royal Sanctum guild on Thunderhorn EU
 ## Version: 0.1
+## SavedVariables: PersonalLootDB
 
 embeds.xml
 PersonalLoot.lua
