@@ -173,6 +173,11 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   end
 end
 
+function PersonalLoot:ItemIsBindOnEquip(itemLink)
+  -- TODO: implement
+  return false
+end
+
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
   local owner, itemLink = PLAYER, nil
 
@@ -189,6 +194,10 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
   if not self:IsEquipment(owner, itemLink) then
     self:Vtrace(itemLink.." is not an equippable item so ignoring...")
     return
+  end
+
+  if self:ItemIsBindOnEquip(itemLink) then
+    self:Announce(itemLink.." is Bind on Equip")
   end
 
   if owner ~= PLAYER then
@@ -409,6 +418,7 @@ end
 
 -- Returns a player class index or nil
 function PersonalLoot:GetArmorClassRestriction(itemLink)
+  -- TODO: implement
   return nil
 end
 
