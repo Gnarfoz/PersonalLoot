@@ -14,11 +14,6 @@ local PLATE = 5
 local STRENGTH = 1
 local AGILITY = 2
 local INTELLECT = 4
-local RESTORATION_DRUID = 105
-local BALANCE_DRUID = 102
-local MISTWEAVER_MONK = 270
-local HOLY_PALADIN = 65
-local ENHANCEMENT_SHAMAN = 263
 
 local ANNOUNCER_NEGOTIATION_CHANNEL = "PLAnnNeg"
 
@@ -454,57 +449,46 @@ function PersonalLoot:UnitCanUseArmorType(unit, armorTypeId)
   return false
 end
 
-function PersonalLoot:ItemHasPrimaryStat(itemLink, statId)
+-- returns booleans for AGILITY, INTELLECT, STRENGTH
+function PersonalLoot:GetItemPrimaryStats(itemLink)
   -- TODO: implement
   -- if statId is nil then check whether the item has no primary stat
+  return true, true, true
 end
 
 -- The unit must be being inspected and have inspect data available
--- Returns INTELLECT, STRENGTH, AGILITY or nil
-function PersonalLoot:GetUnitPrimaryStat(unit)
+function PersonalLoot:UnitUsesPrimaryStatsOfItem(unit, itemLink)
+  local hasAgility, hasIntellect, hasStrength = self:GetItemPrimaryStats(itemLink)
+  if not hasAgility and not hasIntellect and not hasStrength then
+    return true
+  end
+
   local unitClass = UnitClass(unit)
-  local unitSpec = GetInspectSpecialization()
 
   if unitClass == "Death Knight" then
-    return STRENGTH
+    return hasStrength
   else if unitClass == "Demon Hunter" then
     return AGILITY
   else if unitClass == "Druid" then
-    if unitSpec == RESTORATION_DRUID or unitSpec == BALANCE_DRUID then
-      return INTELLECT
-    else
-      return AGILITY
-    end
+    return hasIntellect or hasAgility
   else if unitClass == "Hunter" then
-    return AGILITY
+    return hasAgility
   else if unitClass == "Mage" then
-    return INTELLECT
+    return hasIntellect
   else if unitClass == "Monk" then
-    if unitSpec == MISTWEAVER_MONK then
-      return INTELLECT
-    else
-      return AGILITY
-    end
+    return hasAgility or hasIntellect
   else if unitClass == "Paladin" then
-    if unitSpec == HOLY_PALADIN then
-      return INTELLECT
-    else
-      return AGILITY
-    end
+    return hasIntellect or hasStrength
   else if unitClass == "Priest" then
-    return INTELLECT
+    return hasIntellect
   else if unitClass == "Rogue" then
-    return AGILITY
+    return hasAgility
   else if unitClass == "Shaman" then
-    if unitSpec == ENHANCEMENT_SHAMAN then
-      return AGILITY
-    else
-      return INTELLECT
-    end
+    return hasAgility or hasIntellect
   else if unitClass == "Warlock" then
-    return INTELLECT
+    return hasIntellect
   else if unitClass == "Warrior" then
-    return STRENGTH
+    return hasStrength
   end
 
   self:Error("Unknown primary stat for "..unit)
@@ -521,14 +505,13 @@ function PersonalLoot:UnitCanUse(unit, itemLink)
 
   local armorTypeId = self:GetArmorTypeIndex(itemLink)
 
-  if not UnitCanUseArmorType(unit, armorTypeId) then
+  if not self:UnitCanUseArmorType(unit, armorTypeId) then
     self:Vtrace(unit.." can't use armor type "..tostring(armorTypeId))
     return false
   end
 
   if armorTypeId == MISCELLANEOUS then
-    -- Legion accessories can have no primary stat, making it usable by all
-    if not self:ItemHasPrimaryStat(itemLink, nil) and not self:ItemHasPrimaryStat(itemLink, self:GetUnitPrimaryStat(unit)) then
+    if not self:UnitUsesPrimayStatsOfItem(unit, itemLink) then
       return false
     end
   end
