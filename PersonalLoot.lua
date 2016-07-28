@@ -12,7 +12,7 @@ local LEATHER = 3
 local MAIL = 4
 local PLATE = 5
 
-local ANNOUNCER_NEGOTIATION_CHANNEL = "PersonalLootAnnouncerNegotiation"
+local ANNOUNCER_NEGOTIATION_CHANNEL = "PLAnnNeg"
 
 -- Options table
 local options = {
