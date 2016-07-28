@@ -148,9 +148,9 @@ end
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
   local owner, itemLink = PLAYER, nil
 
-  _, _, itemLink = string.find(message, "You receive.+loot: (|.+|r)")
+  _, _, itemLink = string.find(message, "You receive loot: (|.+|r)")
   if not itemLink then
-    _, _, owner, itemLink = string.find(message, "(.+) receives.+loot: (|.+|r)")
+    _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
   end
 
   if not (owner and itemLink) then
