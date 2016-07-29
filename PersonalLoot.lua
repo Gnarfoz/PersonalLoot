@@ -38,11 +38,20 @@ local options = {
             end
           end,
         },
-        debug = {
+        announce = {
+          name = "Publicly Announce",
+          desc = "Turn raid/group announcements on/off",
+          type = "toggle",
+          order = 2,
+          -- TODO: TryToBecomeAnnouncer and StopAnnouncing
+          set = function(info, val) PersonalLoot.db.char.enablePublicAnnouncing = val end,
+          get = function(info) return PersonalLoot.db.char.enablePublicAnnouncing end,
+        },
+       debug = {
           name = "Debug",
           desc = "Turn debug messages on/off",
           type = "toggle",
-          order = 2,
+          order = 3,
           set = function(info, val) PersonalLoot.db.char.isDebugging = val end,
           get = function(info) return PersonalLoot.db.char.isDebugging end,
         },
@@ -50,7 +59,7 @@ local options = {
           name = "Verbose",
           desc = "Turn verbose debug messages on/off",
           type = "toggle",
-          order = 3,
+          order = 4,
           set = function(info, val) PersonalLoot.db.char.isVerbose = val end,
           get = function(info) return PersonalLoot.db.char.isVerbose end,
         },
@@ -58,7 +67,7 @@ local options = {
           name = "All Item Types",
           desc = "Allows all item types to trigger PersonalLoot",
           type = "toggle",
-          order = 4,
+          order = 5,
           set = function(info, val) PersonalLoot.db.char.allItemTypes = val end,
           get = function(info) return PersonalLoot.db.char.allItemTypes end,
         }
@@ -112,17 +121,15 @@ function PersonalLoot:Announce(message)
     return
   end
 
-  if not self.isAnnouncer then
-    return
-  end
-
   local chatType
 
-  if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-    chatType = "INSTANCE_CHAT"
-  elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
-    if self.instanceType == "raid" then
-      chatType = "RAID"
+  if self.isAnnouncer and self.db.char.enablePublicAnnouncing then
+    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+      chatType = "INSTANCE_CHAT"
+    elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
+      if self.instanceType == "raid" then
+        chatType = "RAID"
+      end
     else
       chatType = "PARTY"
     end
@@ -155,6 +162,7 @@ function PersonalLoot:InspectEquipment(playerName)
 end
 
 function PersonalLoot:INSPECT_READY(fnName, playerGuid)
+  self:Vtrace("Inspect ready for "..playerGuid)
   local _, _, _, _, _, playerName, _ = GetPlayerInfoByGUID(playerGuid)
   if table.getIndex(self.currentPlayers, playerName) < 0 then
     return
@@ -198,6 +206,8 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
   else
     _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
   end
+
+  self:Vtrace("Considering "..message)
 
   if not (owner and itemLink) then
     self:Vtrace("Owner or itemLink is empty in CHAT_MSG_LOOT. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
@@ -249,8 +259,20 @@ function PersonalLoot:ZONE_CHANGED_NEW_AREA()
   self:UpdateChatMsgLootRegistration()
 end
 
+function PersonalLoot:TradableItemsCanDrop()
+  if self.instanceType == "party" then
+    return true
+  end
+
+  if self.instanceType == "raid" and self.isPersonalLoot then
+    return true
+  end
+
+  return false
+end
+
 function PersonalLoot:UpdateChatMsgLootRegistration()
-  if (self.db.char.isDebugging or self.instanceType == "raid") and self.isPersonalLoot then
+  if self:TradableItemsCanDrop() then
     self:RegisterEvent("CHAT_MSG_LOOT")
   else
     self:UnregisterEvent("CHAT_MSG_LOOT")
@@ -335,11 +357,11 @@ end
 function PersonalLoot:GetRealItemLevelBySlotName(owner, slotName)
   self:Vtrace("GetRealItemLevelBySlotName("..owner..", "..slotName..")")
   local slotId = GetInventorySlotInfo(slotName)
-  if not slotId then
+  local itemLink = GetInventoryItemLink(owner, slotId)
+  if not itemLink then
     return -1
   end
-  self:Vtrace("slotId = "..tostring(slotId))
-  return self:GetRealItemLevel(GetInventoryItemLink(owner, slotId))
+  return self:GetRealItemLevel(itemLink)
 end
 
 function PersonalLoot:IsEquipment(owner, itemLink)
@@ -425,7 +447,7 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
 
   local groupSize = GetNumGroupMembers()
   if groupSize < 1 then
-    self:Error("Group size is "..tostring(groupSize))
+    self:Trace("Group size is "..tostring(groupSize)..", skipping checking tradees.")
     return
   end
 
@@ -550,6 +572,7 @@ function PersonalLoot:UnitCanUse(unit, itemLink)
 
   if armorType == "Miscellaneous" then
     if not self:UnitUsesPrimaryStatsOfItem(unit, itemLink) then
+      self:Vtrace(unit.." can't use the primary stats.")
       return false
     end
   end
@@ -567,8 +590,10 @@ function PersonalLoot:StopAnnouncing()
 end
 
 function PersonalLoot:TryToBecomeAnnouncer()
-  self.isAnnouncer = true
-  self:SendCommMessage(ANNOUNCER_NEGOTIATION_CHANNEL, "ME?", "RAID")
+  if self.db.char.enablePublicAnnouncing then
+    self.isAnnouncer = true
+    self:SendCommMessage(ANNOUNCER_NEGOTIATION_CHANNEL, "ME?", "RAID")
+  end
 end
 
 function PersonalLoot:GetRaidLeader()
@@ -644,6 +669,7 @@ end
 function PersonalLoot:OnInitialize()
   local defaults = {
     char = {
+      enablePublicAnnouncing = false,
       isDebugging = false,
       isVerbose = false,
       allItemTypes = false,
