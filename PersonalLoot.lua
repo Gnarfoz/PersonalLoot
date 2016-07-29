@@ -337,7 +337,7 @@ function PersonalLoot:GetRealItemLevel(itemLink)
     return itemLevel
   end
 
-  self:Print("numBonuses = "..numBonuses)
+  self:Vtrace("numBonuses = "..numBonuses)
   numBonuses = tonumber(numBonuses)
 
   local affixes = select(15, strsplit(":", itemLink, 15))
