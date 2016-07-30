@@ -647,7 +647,7 @@ function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
   -- 3. Raid member with the lowest alphabetical name
 
   -- 1.
-  if IsGroupLeader(sender) then
+  if UnitIsGroupLeader(sender) then
     self:Vtrace("I'm not the announcer because I'm not the raid leader.")
     self.isAnnouncer = false
     return
