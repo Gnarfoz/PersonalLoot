@@ -1,3 +1,7 @@
+-- TODO: make sure all checks which don't require an inspect are done first.
+-- So check whether there are any potential tradees before inspecting the
+-- owner if the owner isn't the player.
+
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceComm-3.0", "AceConsole-3.0", "AceEvent-3.0")
 
 local INSPECT_DIST = 285*285
@@ -162,9 +166,12 @@ function PersonalLoot:InspectEquipment(playerName)
 end
 
 function PersonalLoot:INSPECT_READY(fnName, playerGuid)
-  self:Vtrace("Inspect ready for "..playerGuid)
+  -- TODO: determine whether the player was inspected because they have loot
+  -- or are a recipient
   local _, _, _, _, _, playerName, _ = GetPlayerInfoByGUID(playerGuid)
+  self:Vtrace("Inspect ready for "..playerName)
   if table.getIndex(self.currentPlayers, playerName) < 0 then
+    self:Vtrace(playerName.." isn't in the curentPlayers table")
     return
   end
 
