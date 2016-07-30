@@ -625,9 +625,11 @@ function PersonalLoot:GetRaidLeader()
   for i=1, GetNumGroupMembers(), 1 do
     local targetMemberName, targetMemberRank = GetRaidRosterInfo(i)
     if targetMemberRank == RAID_LEADER_RANK then
+      self:Vtrace(targetMemberName.." was found to be the group leader.")
       return targetMemberName
     end
   end
+  self:Vtrace("Failed to find a group leader. Blame Canada.")
 end
 
 function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
