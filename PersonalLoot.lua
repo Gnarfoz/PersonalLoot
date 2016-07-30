@@ -139,6 +139,8 @@ function PersonalLoot:Announce(message)
     end
   end
 
+  self:Vtrace("Announce chatType = "..chatType)
+
   if chatType then
     SendChatMessage(message, chatType, "COMMON", nil)
   else
@@ -170,8 +172,9 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   -- or are a recipient
   local _, _, _, _, _, playerName, _ = GetPlayerInfoByGUID(playerGuid)
   self:Vtrace("Inspect ready for "..playerName)
-  if table.getIndex(self.currentPlayers, playerName) < 0 then
-    self:Vtrace(playerName.." isn't in the curentPlayers table")
+  local playerIndex = table.getIndex(self.currentPlayers, playerName)
+  if playerIndex < 0 then
+    self:Vtrace(playerName.." isn't in the curentPlayers table, got index "..tostring(playerIndex))
     return
   end
 
@@ -189,8 +192,16 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   end
 
   -- getIndex again to make sure we don't have an outdated value
-  table.remove(self.currentPlayers, table.getIndex(self.currentPlayers, playerName))
-  self:Vtrace("Finished inspecting "..playerName)
+  playerIndex = table.getIndex(self.currentPlayers, playerName)
+  if playerIndex < 0 then
+    self:Error("Unable to get index of "..playerName.." when removing.")
+    return
+  else
+    self:Vtrace(playerName.." is index "..tostring(playerIndex))
+  end
+
+  table.remove(self.currentPlayers, playerIndex)
+  self:Vtrace("Finished inspecting "..playerName.." isLootInspect = "..tostring(self.isLootInspect))
   if table.isEmpty(self.currentPlayers) then
     self:UnregisterEvent("INSPECT_READY")
     if self.isLootInspect then
@@ -243,8 +254,13 @@ function PersonalLoot:LootInspection(owner, itemLink)
 
   if owner and itemLink then
     if self:IsTradable(owner, itemLink) then
-      self:Announce(itemLink.." owned by "..owner.." is tradable.")
-      self:EnumerateTradees(owner, itemLink)
+      local potentialTradees = self:EnumerateTradees(owner, itemLink)
+      if potentialTradees > 0 then
+        self:Announce(itemLink.." owned by "..owner.." is tradable.")
+        self:EnumerateTraees(owner, itemLink)
+      else
+        self:Vtrace("Nobody can use "..itemLink..", skipping announcing.")
+      end
     else
       self:Trace(itemLink.." owned by "..owner.." is not tradable.")
     end
@@ -404,7 +420,8 @@ function PersonalLoot:IsEquipment(owner, itemLink)
 end
 
 function PersonalLoot:WeaponIsTwoHanded(itemLink)
-  return select(9, GetItemInfo(itemLink)) == "INVTYPE_2HWEAPON"
+  local isTwohanded = select(9, GetItemInfo(itemLink)) == "INVTYPE_2HWEAPON"
+  self:Vtrace("WeaponIsTwoHanded? "..tostring(isTwoHanded))
 end
 
 -- unit must be being inspected
