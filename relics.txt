@@ -1,0 +1,20 @@
+relicType : spec
+
+ARCANE: veng dh, balance druid, bm hunter, arcane mage, fire mage, frost mage, 
+        prot pala,
+BLOOD: blood dk, unholy dk, feral druid, guardian druid, mm hunter, surv hunter,
+        shadow priest, ass rogue, outlaw rogue, affli lock, arms warr, prot warr
+FEL: havoc dh, veng dh, sub rogue, demo lock, destro lock
+FIRE: unholy dk, guardian druid, fire mage, ret pala, enh sham, demo lock, destro lock,
+      fury warr, prot warr
+FROST: frost dk, feral druid, resto druid, arcane mage, frost mage, mw monk, ele sham,
+        resto sham, 
+HOLY: holy pala, prot pala, ret pala, disc priest, holy priest
+IRON: blood dk, veng dh, bm hunter, surv hunter, bm monk, ww monk, prot pala, ass rogue,
+      outlaw rogue, enh sham, arms warr, fury warr, prot warr
+LIFE: balance druid, feral druid, guardian druid, resto druid, mm hunter, bm monk,
+      mw monk, holy pala, holy priest, resto sham, 
+SHADOW: blood dk, frost dk, unholy dk, havoc dh, disc priest, shadow priest, ass rogue,
+        sub rogue, affli lock, demo lock, arms warr
+STORM: bm hunter, mm hunter, surv hunter, bm monk, mw monk, ww monk, outlaw rogue,
+        ele sham, enh sham, fury warr
