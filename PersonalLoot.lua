@@ -13,6 +13,7 @@ local MISCELLANEOUS = 1
 local STRENGTH = 1
 local AGILITY = 2
 local INTELLECT = 4
+local RAID_LEADER_RANK = 2
 
 local ANNOUNCER_NEGOTIATION_CHANNEL = "PLAnnNeg"
 
@@ -621,8 +622,12 @@ function PersonalLoot:TryToBecomeAnnouncer()
 end
 
 function PersonalLoot:GetRaidLeader()
-  -- TODO: implement
-  return nil
+  for i=1, GetNumGroupMembers(), 1 do
+    local targetMemberName, targetMemberRank = GetRaidRosterInfo(i)
+    if targetMemberRank == RAID_LEADER_RANK then
+      return targetMemberName
+    end
+  end
 end
 
 function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
