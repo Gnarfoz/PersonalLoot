@@ -633,7 +633,13 @@ function PersonalLoot:GetRaidLeader()
 end
 
 function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
-  self:Trace("OnCommReceived: "..prefix..", "..message..", "..distribution..", "..sender)
+  self:Vtrace("OnCommReceived: "..prefix..", "..message..", "..distribution..", "..sender)
+
+  -- We receive our own messages, skip them
+  if UnitIsUnit(sender, "player") then
+    return
+  end
+
   if message == "LEAVING" then
     self:TryToBecomeAnnouncer()
     return
@@ -723,7 +729,7 @@ function PersonalLoot:OnEnable()
   self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   -- self:RegisterEvent("PLAYER_TARGET_CHANGED")
 
-  self:RegisterComm(ANNOUNCER_NEGOTIATION_CHANNEL, self.OnCommReceived)
+  self:RegisterComm(ANNOUNCER_NEGOTIATION_CHANNEL)
 
   self:TryToBecomeAnnouncer()
 end
