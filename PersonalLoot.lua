@@ -541,17 +541,21 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
   local groupSize = GetNumGroupMembers()
   if groupSize < 1 then
     self:Trace("Group size is "..tostring(groupSize)..", skipping checking tradees.")
-    return
+    return 0
   end
 
+  local amountOfPotentialTradees = 0
   for i = 1, groupSize, 1 do
     local name = GetRaidRosterInfo(i)
     if not UnitIsUnit("player", name) then
       if self:UnitCanUse(name, itemLink) then
         self:InspectEquipment(name)
+        amountOfPotentialTradees = amountOfPotentialTradees + 1
       end
     end
   end
+  -- Return the amount of people able to use the item
+  return amountOfPotentialTradees
 end
 
 -- Returns an itemType, see GetItemInfo's return values
