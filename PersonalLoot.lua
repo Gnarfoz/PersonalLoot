@@ -375,6 +375,15 @@ function PersonalLoot:GetRealItemLevelBySlotName(owner, slotName)
   return self:GetRealItemLevel(itemLink)
 end
 
+-- TODO (uses wearable table from options.lua)
+function PersonalLoot:UnitCanUseArmorType(unit, armorType)
+  if armorType == "Miscellaneous" then
+    return true
+  end
+  local unitClass = UnitClass(unit)
+  return (map[unitClass] and map[unitClass][armorType]) or false
+end
+
 function PersonalLoot:IsEquipment(owner, itemLink)
   if not owner or not itemLink then
     self:Error("IsEquipment received nil owner or itemLink")
