@@ -6,3 +6,4 @@
 
 embeds.xml
 PersonalLoot.lua
+options.lua
