@@ -381,7 +381,7 @@ function PersonalLoot:UnitCanUseArmorType(unit, armorType)
     return true
   end
   local unitClass = UnitClass(unit)
-  return (map[unitClass] and map[unitClass][armorType]) or false
+  return (self:wearable[unitClass] and self:wearable[unitClass][armorType]) or false
 end
 
 function PersonalLoot:IsEquipment(owner, itemLink)
