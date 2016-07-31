@@ -490,8 +490,9 @@ end
 
 function PersonalLoot:WeaponIsTwoHanded(itemLink)
   local invType, _ = select(9, GetItemInfo(itemLink))
-  return invType == "INVTYPE_2HWEAPON"
+  local isTwoHanded = invType == "INVTYPE_2HWEAPON"
   self:Vtrace("WeaponIsTwoHanded? "..tostring(isTwoHanded))
+  return isTwoHanded
 end
 
 -- unit must be being inspected
