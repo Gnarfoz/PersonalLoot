@@ -705,15 +705,18 @@ function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
 
   -- We receive our own messages, skip them
   if UnitIsUnit(sender, "player") then
+    self:Vtrace("I am the sender, ignoring.")
     return
   end
 
   if message == "LEAVING" then
+    self:Vtrace("Announcer is leaving, trying to become the new announcer.")
     self:TryToBecomeAnnouncer()
     return
   end
 
   if not message == "ME?" then
+    self:Vtrace("Recieved message not defined in addon, ignoring.")
     return
   end
 
