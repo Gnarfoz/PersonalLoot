@@ -326,7 +326,7 @@ function PersonalLoot:LootInspection(owner, itemLink)
       local potentialTradees = self:EnumerateTradees(owner, itemLink)
       if potentialTradees > 0 then
         self:Announce(itemLink.." owned by "..owner.." is tradable.")
-        self:EnumerateTraees(owner, itemLink)
+        self:EnumerateTradees(owner, itemLink)
       else
         self:Vtrace("Nobody can use "..itemLink..", skipping announcing.")
       end
