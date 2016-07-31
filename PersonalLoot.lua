@@ -208,7 +208,7 @@ function PersonalLoot:Announce(message)
     end
   end
 
-  self:Vtrace("Announce chatType = "..chatType)
+  self:Vtrace("Announce chatType = "..tostring(chatType))
 
   if chatType then
     SendChatMessage(message, chatType, "COMMON", nil)
