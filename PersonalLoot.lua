@@ -489,7 +489,7 @@ function PersonalLoot:IsEquipment(owner, itemLink)
 end
 
 function PersonalLoot:WeaponIsTwoHanded(itemLink)
-  local isTwohanded = select(9, GetItemInfo(itemLink)) == "INVTYPE_2HWEAPON"
+  local isTwohanded, _ = select(9, GetItemInfo(itemLink)) == "INVTYPE_2HWEAPON"
   self:Vtrace("WeaponIsTwoHanded? "..tostring(isTwoHanded))
 end
 
