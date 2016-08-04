@@ -86,32 +86,32 @@ PersonalLoot.options = {
           type = "toggle",
           order = 2,
           -- TODO: TryToBecomeAnnouncer and StopAnnouncing
-          set = function(info, val) self.db.char.enablePublicAnnouncing = val end,
-          get = function(info) return self.db.char.enablePublicAnnouncing end,
+          set = function(info, val) PersonalLoot.db.char.enablePublicAnnouncing = val end,
+          get = function(info) return PersonalLoot.db.char.enablePublicAnnouncing end,
         },
        debug = {
           name = "Debug",
           desc = "Turn debug messages on/off",
           type = "toggle",
           order = 3,
-          set = function(info, val) self.db.char.isDebugging = val end,
-          get = function(info) return self.db.char.isDebugging end,
+          set = function(info, val) PersonalLoot.db.char.isDebugging = val end,
+          get = function(info) return PersonalLoot.db.char.isDebugging end,
         },
         verbose = {
           name = "Verbose",
           desc = "Turn verbose debug messages on/off",
           type = "toggle",
           order = 4,
-          set = function(info, val) self.db.char.isVerbose = val end,
-          get = function(info) return self.db.char.isVerbose end,
+          set = function(info, val) PersonalLoot.db.char.isVerbose = val end,
+          get = function(info) return PersonalLoot.db.char.isVerbose end,
         },
         allItemTypes = {
           name = "All Item Types",
           desc = "Allows all item types to trigger PersonalLoot",
           type = "toggle",
           order = 5,
-          set = function(info, val) self.db.char.allItemTypes = val end,
-          get = function(info) return self.db.char.allItemTypes end,
+          set = function(info, val) PersonalLoot.db.char.allItemTypes = val end,
+          get = function(info) return PersonalLoot.db.char.allItemTypes end,
         }
       }
     }
