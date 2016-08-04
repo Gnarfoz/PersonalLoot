@@ -1,6 +1,7 @@
 -- TODO: make sure all checks which don't require an inspect are done first.
 -- So check whether there are any potential tradees before inspecting the
 -- owner if the owner isn't the player.
+-- Remove playerItems cache on group roster update
 
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceComm-3.0", "AceConsole-3.0", "AceEvent-3.0")
 LBI = LibStub:GetLibrary("LibBabble-Inventory-3.0"):GetLookupTable()
@@ -299,16 +300,29 @@ function PersonalLoot:GROUP_JOINED()
   self:TryToBecomeAnnouncer()
 end
 
+function PersonalLoot:UnitEquipmentIsCached(playerName)
+  return playerName and self.playerItems[playerName]
+         and not self.playerItems[playerName]["pending"]
+         and self.playerItems[playerName]["time"] >= GetTime() - 3000
+end
+
+-- Loads a player's equipment from cache or the server
 function PersonalLoot:InspectEquipment(playerName)
-    if playerName and CanInspect(playerName) then
-      self:RegisterEvent("INSPECT_READY")
-      self:Vtrace("Starting equipment inspection for "..playerName.."...")
-      table.insert(self.currentPlayers, playerName)
-      NotifyInspect(playerName)
-    end
+  if self:UnitEquipmentIsCached() then
+    self:Vtrace(playerName.." items are cached and up to date.")
+    self:HandleLootedItem(playerName, self.currentLoot)
+  elseif CanInspect(playerName) then
+    self:Vtrace("Starting equipment inspection for "..playerName.."...")
+    self.playerItems[playerName]["pending"] = true
+    self.playerItems[playerName]["time"] = 0
+    self:RegisterEvent("INSPECT_READY")
+    -- TODO: what if another addon calls NotifyInspect?
+    NotifyInspect(playerName)
+  end
 end
 
 function PersonalLoot:INSPECT_READY(fnName, playerGuid)
+  self:UnregisterEvent("INSPECT_READY")
   -- TODO: determine whether the player was inspected because they have loot
   -- or are a recipient
   local _, _, _, _, _, playerName, playerRealm = GetPlayerInfoByGUID(playerGuid)
@@ -318,42 +332,27 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
     playerName = playerName.."-"..playerRealm
   end
 
-  self:Vtrace("Inspect ready for "..playerName)
-  local playerIndex = tableGetIndex(self.currentPlayers, playerName)
-  if playerIndex < 0 then
-    self:Vtrace(playerName.." isn't in the currentPlayers table, got index "..tostring(playerIndex))
-    return
-  end
-
-  -- Cache all of the equipment slots
-  for id=0,19,1 do
-    link = GetInventoryItemLink(playerName, id)
-    if not link then
-      distanceSquared, valid = UnitDistanceSquared(playerName)
-      if not valid or distanceSquared >= INSPECT_DIST then
-        ClearInspectPlayer()
-        self:Error(playerName.." is too far to inspect!")
-        return
+  if self.playerItems[playerName] then
+    self.playerItems[playerName]["pending"] = false
+    self:Vtrace("Inspect ready for "..playerName)
+    -- Cache all of the equipment slots
+    for id=0,19,1 do
+      link = GetInventoryItemLink(playerName, id)
+      if not link then
+        distanceSquared, valid = UnitDistanceSquared(playerName)
+        if not valid or distanceSquared >= INSPECT_DIST then
+          ClearInspectPlayer()
+          self:Error(playerName.." is too far to inspect!")
+          return
+        end
       end
     end
-  end
-
-  -- getIndex again to make sure we don't have an outdated value
-  playerIndex = tableGetIndex(self.currentPlayers, playerName)
-  if playerIndex < 0 then
-    self:Error("Unable to get index of "..playerName.." when removing.")
-    return
+    ClearInspectPlayer()
+    self.playerItems[playerName]["time"] = GetTime()
+    self:Vtrace("Finished inspecting "..playerName)
+    self:HandleLootedItem(playerName, self.currentLoot)
   else
     self:Vtrace(playerName.." is index "..tostring(playerIndex))
-  end
-
-  table.remove(self.currentPlayers, playerIndex)
-  self:Vtrace("Finished inspecting "..playerName.." isLootInspect = "..tostring(self.isLootInspect))
-  if tableIsEmpty(self.currentPlayers) then
-    self:UnregisterEvent("INSPECT_READY")
-    if self.isLootInspect then
-      self:LootInspection(playerName, self.currentLoot)
-    end
   end
 end
 
@@ -389,30 +388,26 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
 
   if not UnitIsUnit("player", owner) then
     self.currentLoot = itemLink
-    self.isLootInspect = true
     self:InspectEquipment(owner)
   else
-    self:LootInspection(owner, itemLink)
+    self:HandleLootedItem(owner, itemLink)
   end
 end
 
-function PersonalLoot:LootInspection(owner, itemLink)
-  self.isLootInspect = false
-
-  if owner and itemLink then
-    if self:IsTradable(owner, itemLink) then
-      local potentialTradees = self:EnumerateTradees(owner, itemLink)
-      if potentialTradees > 0 then
-        self:Announce(itemLink.." owned by "..owner.." is tradable.")
-        self:EnumerateTradees(owner, itemLink)
-      else
-        self:Vtrace("Nobody can use "..itemLink..", skipping announcing.")
-      end
+-- owner and itemLink must be valid and owner's items must be available in the
+-- cache
+function PersonalLoot:HandleLootedItem(owner, itemLink)
+  assert(owner and itemLink)
+  if self:IsTradable(owner, itemLink) then
+    local potentialTradees = self:EnumerateTradees(owner, itemLink)
+    if potentialTradees > 0 then
+      self:Announce(itemLink.." owned by "..owner.." is tradable.")
+      self:EnumerateTradees(owner, itemLink)
     else
-      self:Trace(itemLink.." owned by "..owner.." is not tradable.")
+      self:Vtrace("Nobody can use "..itemLink..", skipping announcing.")
     end
   else
-    self:Error("Owner or itemLink is empty in LootInspection. Owner: "..tostring(owner==nil).." Item:"..tostring(itemLink==nil))
+    self:Trace(itemLink.." owned by "..owner.." is not tradable.")
   end
 end
 
@@ -600,11 +595,9 @@ function PersonalLoot:UnitIsFuryWarrior(unit)
   return UnitClass(unit) == "Warrior" and GetInspectSpecialization() == FURY_WARRIOR_SPEC_ID
 end
 
--- Inspect data must be ready before calling this
--- TODO:
--- might have to call ClearInspectPlayer() when we're done using
--- the inspected info
+-- owner and itemLink must be valid. owner's items must be cached
 function PersonalLoot:IsTradable(owner, itemLink)
+  assert(owner and itemLink)
   local itemLevel = self:GetRealItemLevel(itemLink)
 
   if slotName == "FingerSlot" then
@@ -768,6 +761,8 @@ function PersonalLoot:GetRaidLeader()
   self:Vtrace("Failed to find a group leader. Blame Canada.")
 end
 
+-- TODO: a priority list of addon users in the group to prevent many people
+-- sending "ME?" in response to the announcer leaving
 function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
   self:Vtrace("OnCommReceived: "..prefix..", "..message..", "..distribution..", "..sender)
 
@@ -851,8 +846,7 @@ end
 
 function PersonalLoot:OnEnable()
   self:Trace("OnEnable")
-  self.isLootInspect = false
-  self.currentPlayers = {}
+  self.playerItems = {}
   self.currentLoot = nil
 
   -- Reloading the UI doesn't result in these events being fired, so force them
