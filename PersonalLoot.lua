@@ -86,9 +86,17 @@ PersonalLoot.options = {
           desc = "Turn raid/group announcements on/off",
           type = "toggle",
           order = 2,
-          -- TODO: TryToBecomeAnnouncer and StopAnnouncing
-          set = function(info, val) PersonalLoot.db.char.enablePublicAnnouncing = val end,
-          get = function(info) return PersonalLoot.db.char.enablePublicAnnouncing end,
+          set = function(info, val)
+            PersonalLoot.db.char.enablePublicAnnouncing = val
+            if val then
+              PersonalLoot:TryToBecomeAnnouncer()
+            else
+              PersonalLoot:StopAnnouncing()
+            end
+          end,
+          get = function(info)
+            return PersonalLoot.db.char.enablePublicAnnouncing
+          end,
         },
        debug = {
           name = "Debug",
