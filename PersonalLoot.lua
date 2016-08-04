@@ -3,9 +3,59 @@
 -- owner if the owner isn't the player.
 
 PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceComm-3.0", "AceConsole-3.0", "AceEvent-3.0")
+LBI = LibStub:GetLibrary("LibBabble-Inventory-3.0"):GetLookupTable()
 
--- Options table
-local options = {
+local ANNOUNCER_NEGOTIATION_CHANNEL = "PLAnnNeg"
+local INSPECT_DIST = 285*285
+local RED = "cffff0000"
+local ITEM_QUALITY_RARE = 3
+local ITEM_QUALITY_EPIC = 4
+local FURY_WARRIOR_SPEC_ID = 72
+local MISCELLANEOUS = 1
+local STRENGTH = 1
+local AGILITY = 2
+local INTELLECT = 4
+local RAID_LEADER_RANK = 2
+
+-- Relic type mapping
+local BLOOD_DEATH_KNIGHT = 250
+local FROST_DEATH_KNIGHT = 251
+local UNHOLY_DEATH_KNIGHT = 252
+local HAVOC_DEMON_HUNTER = 577
+local VENGEANCE_DEMON_HUNTER = 581
+local BALANCE_DRUID = 102
+local FERAL_DRUID = 103
+local GUARDIAN_DRUID = 104
+local RESTORATION_DRUID = 105
+local BEAST_MASTERY_HUNTER = 253
+local MARKSMANSHIP_HUNTER = 254
+local SURVIVAL_HUNTER = 255
+local ARCANE_MAGE = 62
+local FIRE_MAGE = 63
+local FROST_MAGE = 64
+local BREWMASTER_MONK = 268
+local WINDWALKER_MONK = 269
+local MISTWEAVER_MONK = 270
+local HOLY_PALADIN = 65
+local PROTECTION_PALADIN = 66
+local RETRIBUTION_PALADIN = 70
+local DISCIPLINE_PRIEST = 256
+local HOLY_PRIEST = 257
+local SHADOW_PRIEST = 258
+local ASSASSINATION_ROGUE = 259
+local OUTLAW_ROGUE = 260
+local SUBTLETY_ROGUE = 261
+local ELEMENTAL_SHAMAN = 262
+local ENHANCEMENT_SHAMAN = 263
+local RESTORATION_SHAMAN = 264
+local AFFLICATION_WARLOCK = 265
+local DEMONOLOGY_WARLOCK = 266
+local DESTRUCTION_WARLOCK = 267
+local ARMS_WARRIOR = 71
+local FURY_WARRIOR = 72
+local PROTECTION_WARRIOR = 73
+
+PersonalLoot.options = {
   name = "PersonalLoot",
   handler = PersonalLoot,
   type = "group",
@@ -24,9 +74,9 @@ local options = {
           get = "IsEnabled",
           set = function(_, newVal)
             if (not newVal) then
-              PersonalLoot:Disable();
+              self:Disable();
             else
-              PersonalLoot:Enable();
+              self:Enable();
             end
           end,
         },
@@ -36,42 +86,141 @@ local options = {
           type = "toggle",
           order = 2,
           -- TODO: TryToBecomeAnnouncer and StopAnnouncing
-          set = function(info, val) PersonalLoot.db.char.enablePublicAnnouncing = val end,
-          get = function(info) return PersonalLoot.db.char.enablePublicAnnouncing end,
+          set = function(info, val) self.db.char.enablePublicAnnouncing = val end,
+          get = function(info) return self.db.char.enablePublicAnnouncing end,
         },
        debug = {
           name = "Debug",
           desc = "Turn debug messages on/off",
           type = "toggle",
           order = 3,
-          set = function(info, val) PersonalLoot.db.char.isDebugging = val end,
-          get = function(info) return PersonalLoot.db.char.isDebugging end,
+          set = function(info, val) self.db.char.isDebugging = val end,
+          get = function(info) return self.db.char.isDebugging end,
         },
         verbose = {
           name = "Verbose",
           desc = "Turn verbose debug messages on/off",
           type = "toggle",
           order = 4,
-          set = function(info, val) PersonalLoot.db.char.isVerbose = val end,
-          get = function(info) return PersonalLoot.db.char.isVerbose end,
+          set = function(info, val) self.db.char.isVerbose = val end,
+          get = function(info) return self.db.char.isVerbose end,
         },
         allItemTypes = {
           name = "All Item Types",
           desc = "Allows all item types to trigger PersonalLoot",
           type = "toggle",
           order = 5,
-          set = function(info, val) PersonalLoot.db.char.allItemTypes = val end,
-          get = function(info) return PersonalLoot.db.char.allItemTypes end,
+          set = function(info, val) self.db.char.allItemTypes = val end,
+          get = function(info) return self.db.char.allItemTypes end,
         }
       }
     }
   }
 }
 
--- Add options table as slash command and add it to the Bliiz interface
-LibStub("AceConfig-3.0"):RegisterOptionsTable("PersonalLoot", options, "pl")
-LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("PersonalLoot", options)
-LibStub("AceConfigDialog-3.0"):AddToBlizOptions("PersonalLoot", "PersonalLoot")
+PersonalLoot.defaultOptions = {
+  char = {
+    enablePublicAnnouncing = false,
+    isDebugging = false,
+    isVerbose = false,
+    allItemTypes = false,
+  }
+}
+
+PersonalLoot.relicTypes = {
+  [ "ARCANE" ] = {VENGEANCE_DEMON_HUNTER, BALANCE_DRUID, BEAST_MASTERY_HUNTER,
+                ARCANE_MAGE, FIRE_MAGE, FROST_MAGE, PROTECTION_PALADIN},
+  [ "BLOOD" ] = {BLOOD_DEATH_KNIGHT, UNHOLY_DEATH_KNIGHT, FERAL_DRUID, GUARDIAN_DRUID,
+               MARKSMANSHIP_HUNTER, SURVIVAL_HUNTER, SHADOW_PRIEST, ASSASSINATION_ROGUE,
+               OUTLAW_ROGUE, AFFLICATION_WARLOCK, ARMS_WARRIOR, PROTECTION_WARRIOR},
+  [ "FEL" ] = {HAVOC_DEMON_HUNTER, VENGEANCE_DEMON_HUNTER, SUBTLETY_ROGUE, DEMONOLOGY_WARLOCK,
+             DESTRUCTION_WARLOCK},
+  [ "FIRE" ] = {UNHOLY_DEATH_KNIGHT, GUARDIAN_DRUID, FIRE_MAGE, RETRIBUTION_PALADIN,
+              ENHANCEMENT_SHAMAN, DEMONOLOGY_WARLOCK, DESTRUCTION_WARLOCK,
+              FURY_WARRIOR, PROTECTION_WARRIOR},
+  [ "FROST" ] = {FROST_DEATH_KNIGHT, FERAL_DRUID, RESTORATION_DRUID, ARCANE_MAGE,
+               FROST_MAGE, MISTWEAVER_MONK, ELEMENTAL_SHAMAN, RESTORATION_SHAMAN},
+  [ "HOLY" ] = {HOLY_PALADIN, PROTECTION_PALADIN, RETRIBUTION_PALADIN, DISCIPLINE_PRIEST,
+              HOLY_PRIEST},
+  [ "IRON" ] = {BLOOD_DEATH_KNIGHT, VENGEANCE_DEMON_HUNTER, BEAST_MASTERY_HUNTER,
+              SURVIVAL_HUNTER, BREWMASTER_MONK, WINDWALKER_MONK, PROTECTION_PALADIN,
+              ASSASSINATION_ROGUE, OUTLAW_ROGUE, ENHANCEMENT_SHAMAN, ARMS_WARRIOR,
+              FURY_WARRIOR, PROTECTION_WARRIOR},
+  [ "LIFE" ] = {BALANCE_DRUID, FERAL_DRUID, GUARDIAN_DRUID, RESTORATION_DRUID,
+              MARKSMANSHIP_HUNTER, BREWMASTER_MONK, MISTWEAVER_MONK, HOLY_PALADIN,
+              HOLY_PRIEST, RESTORATION_SHAMAN},
+  [ "SHADOW" ] = {BLOOD_DEATH_KNIGHT, FROST_DEATH_KNIGHT, UNHOLY_DEATH_KNIGHT,
+                HAVOC_DEMON_HUNTER, DISCIPLINE_PRIEST, SHADOW_PRIEST, ASSASSINATION_ROGUE,
+                SUBTLETY_ROGUE, AFFLICATION_WARLOCK, DEMONOLOGY_WARLOCK, ARMS_WARRIOR},
+  [ "STORM" ] = {BEAST_MASTERY_HUNTER, MARKSMANSHIP_HUNTER, SURVIVAL_HUNTER, BREWMASTER_MONK,
+               MISTWEAVER_MONK, WINDWALKER_MONK, OUTLAW_ROGUE, ELEMENTAL_SHAMAN,
+               ENHANCEMENT_SHAMAN, FURY_WARRIOR},
+}
+
+-- TODO: What about off hands?
+-- TODO: Cloaks
+PersonalLoot.classProficiencies = {
+  [ "DEATHKNIGHT" ] = {
+    LBI["Fishing Poles"], LBI["One-Handed Axes"], LBI["One-Handed Maces"],
+    LBI["One-Handed Swords"], LBI["Plate"], LBI["Polearms"],
+    LBI["Two-Handed Axes"], LBI["Two-Handed Maces"], LBI["Two-Handed Swords"]
+  },
+  [ "DEMONHUNTER" ] = {
+    LBI["Daggers"], LBI["Fishing Poles"], LBI["Fist Weapons"], LBI["Leather"],
+    LBI["One-Handed Axes"], LBI["One-Handed Maces"], LBI["One-Handed Swords"],
+    -- TODO: LBI["Warglaives"]
+  },
+  [ "DRUID" ] = {
+    LBI["Daggers"], LBI["Fishing Poles"], LBI["Fist Weapons"],
+    LBI["One-Handed Maces"], LBI["Leather"], LBI["Polearms"],
+    LBI["Two-Handed Maces"], LBI["Staves"]
+  },
+  [ "HUNTER" ] = {
+    LBI["Bows"], LBI["Crossbows"], LBI["Daggers"], LBI["Fishing Poles"],
+    LBI["Fist Weapons"], LBI["Guns"], LBI["Mail"], LBI["One-Handed Axes"],
+    LBI["One-Handed Swords"], LBI["Polearms"], LBI["Staves"], LBI["Thrown"],
+    LBI["Two-Handed Axes"], LBI["Two-Handed Swords"]
+  },
+  [ "MAGE" ] = {
+    LBI["Cloth"], LBI["Daggers"], LBI["Fishing Poles"],
+    LBI["One-Handed Swords"], LBI["Staves"], LBI["Wands"]
+  },
+  [ "MONK" ] = {
+    LBI["Fishing Poles"], LBI["Fist Weapons"], LBI["Leather"],
+    LBI["One-Handed Axes"], LBI["One-Handed Maces"], LBI["One-Handed Swords"],
+    LBI["Polearms"], LBI["Staves"]
+  },
+  [ "PALADIN" ] = {
+    LBI["Fishing Poles"], LBI["One-Handed Axes"], LBI["One-Handed Maces"],
+    LBI["One-Handed Swords"], LBI["Plate"], LBI["Polearms"], LBI["Shields"],
+    LBI["Two-Handed Axes"], LBI["Two-Handed Maces"], LBI["Two-Handed Swords"]
+  },
+  [ "PRIEST" ] = {
+    LBI["Cloth"], LBI["Fishing Poles"], LBI["One-Handed Maces"], LBI["Staves"],
+    LBI["Daggers"], LBI["Wands"]
+  },
+  [ "ROGUE" ] = {
+    LBI["Bows"], LBI["Crossbows"], LBI["Daggers"], LBI["Fishing Poles"],
+    LBI["Fist Weapons"], LBI["Guns"], LBI["Leather"], LBI["One-Handed Axes"],
+    LBI["One-Handed Maces"], LBI["One-Handed Swords"], LBI["Thrown"]
+  },
+  [ "SHAMAN" ] = {
+    LBI["Daggers"], LBI["Fishing Poles"], LBI["Fist Weapons"], LBI["Mail"],
+    LBI["One-Handed Axes"], LBI["One-Handed Maces"], LBI["Shields"],
+    LBI["Staves"], LBI["Two-Handed Axes"], LBI["Two-Handed Maces"]
+  },
+  [ "WARLOCK" ] = {
+    LBI["Cloth"], LBI["Daggers"], LBI["Fishing Poles"],
+    LBI["One-Handed Swords"], LBI["Staves"], LBI["Wands"]
+  },
+  [ "WARRIOR" ] = {
+    LBI["Bows"], LBI["Crossbows"], LBI["Daggers"], LBI["Fishing Poles"],
+    LBI["Fist Weapons"], LBI["Guns"], LBI["One-Handed Axes"],
+    LBI["One-Handed Maces"], LBI["One-Handed Swords"], LBI["Plate"],
+    LBI["Polearms"], LBI["Shields"], LBI["Staves"], LBI["Thrown"],
+    LBI["Two-Handed Axes"], LBI["Two-Handed Maces"], LBI["Two-Handed Swords"]
+  },
+}
 
 function PersonalLoot:Trace(message)
   if self.db.char.isDebugging then
@@ -93,11 +242,11 @@ function PersonalLoot:ColouredPrint(message, colour)
   self:Print("|"..colour..message)
 end
 
-function table.isEmpty(table)
+function tableIsEmpty(table)
   return next(table) == nil
 end
 
-function table.getIndex(table, val)
+function tableGetIndex(table, val)
     for index, value in ipairs(table) do
         if value == val then
             return index
@@ -105,6 +254,10 @@ function table.getIndex(table, val)
     end
 
     return -1
+end
+
+function tableContains(table, val)
+  return tableGetIndex(table, val) > 0
 end
 
 function PersonalLoot:Announce(message)
@@ -160,7 +313,7 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   -- or are a recipient
   local _, _, _, _, _, playerName, _ = GetPlayerInfoByGUID(playerGuid)
   self:Vtrace("Inspect ready for "..playerName)
-  local playerIndex = table.getIndex(self.currentPlayers, playerName)
+  local playerIndex = tableGetIndex(self.currentPlayers, playerName)
   if playerIndex < 0 then
     self:Vtrace(playerName.." isn't in the curentPlayers table, got index "..tostring(playerIndex))
     return
@@ -180,7 +333,7 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   end
 
   -- getIndex again to make sure we don't have an outdated value
-  playerIndex = table.getIndex(self.currentPlayers, playerName)
+  playerIndex = tableGetIndex(self.currentPlayers, playerName)
   if playerIndex < 0 then
     self:Error("Unable to get index of "..playerName.." when removing.")
     return
@@ -190,7 +343,7 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
 
   table.remove(self.currentPlayers, playerIndex)
   self:Vtrace("Finished inspecting "..playerName.." isLootInspect = "..tostring(self.isLootInspect))
-  if table.isEmpty(self.currentPlayers) then
+  if tableIsEmpty(self.currentPlayers) then
     self:UnregisterEvent("INSPECT_READY")
     if self.isLootInspect then
       self:LootInspection(playerName, self.currentLoot)
@@ -375,13 +528,26 @@ function PersonalLoot:GetRealItemLevelBySlotName(owner, slotName)
   return self:GetRealItemLevel(itemLink)
 end
 
--- TODO (uses wearable table from options.lua)
-function PersonalLoot:UnitCanUseArmorType(unit, armorType)
-  if armorType == "Miscellaneous" then
+-- itemSubclass is the 7th return value of GetItemInfo
+function PersonalLoot:UnitCanUseItemSubclass(unit, itemSubclass)
+  -- TODO: do necks, rings, trinkets come under Miscellaneous?
+  if itemSubclass == LBI["Miscellaneous"] then
     return true
   end
-  local unitClass = UnitClass(unit)
-  return (self:wearable[unitClass] and self:wearable[unitClass][armorType]) or false
+
+  if itemSubClass == LBI["Cloaks"] then
+    return true
+  end
+
+  local unitClass = select(2, UnitClass(unit))
+  if not self.classProficiencies[unitClass] then
+    self:Error("No class entry for class "..tostring(unitClass))
+    return false
+  end
+
+  local canWear = tableContains(self.classProficiencies[unitClass], itemSubClass)
+  self:Vtrace(unitClass.." can use "..itemSubClass.."? "..tostring(canWear))
+  return canWear
 end
 
 function PersonalLoot:IsEquipment(owner, itemLink)
@@ -488,8 +654,8 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
   return amountOfPotentialTradees
 end
 
--- Returns an itemType, see GetItemInfo's return values
-function PersonalLoot:GetArmorType(itemLink)
+-- Returns an item subclass, see GetItemInfo's return values
+function PersonalLoot:GetItemSubclass(itemLink)
   return select(7, GetItemInfo(itemLink))
 end
 
@@ -497,43 +663,6 @@ end
 function PersonalLoot:GetArmorClassRestriction(itemLink)
   -- TODO: implement
   return nil
-end
-
-function PersonalLoot:UnitCanUseArmorType(unit, armorType)
-  if armorType == "Miscellaneous" then
-    return true
-  end
-
-  local unitClass = UnitClass(unit)
-
-  if unitClass == "Death Knight" then
-    return armorType == "Plate"
-  elseif unitClass == "Demon Hunter" then
-    return armorType == "Leather"
-  elseif unitClass == "Druid" then
-    return armorType == "Leather"
-  elseif unitClass == "Hunter" then
-    return armorType == "Mail"
-  elseif unitClass == "Mage" then
-    return armorType == "Cloth"
-  elseif unitClass == "Monk" then
-    return armorType == "Leather"
-  elseif unitClass == "Paladin" then
-    return armorType == "Plate"
-  elseif unitClass == "Priest" then
-    return armorType == "Cloth"
-  elseif unitClass == "Rogue" then
-    return armorType == "Leather"
-  elseif unitClass == "Shaman" then
-    return armorType == "Mail"
-  elseif unitClass == "Warlock" then
-    return armorType == "Cloth"
-  elseif unitClass == "Warrior" then
-    return armorType == "Plate"
-  end
-
-  self:Error("Unknown unit class "..unitClass)
-  return false
 end
 
 -- returns booleans for AGILITY, INTELLECT, STRENGTH
@@ -590,10 +719,9 @@ function PersonalLoot:UnitCanUse(unit, itemLink)
     return false
   end
 
-  local armorType = self:GetArmorType(itemLink)
-
-  if not self:UnitCanUseArmorType(unit, armorType) then
-    self:Vtrace(unit.." can't use armor type "..tostring(armorType))
+  local itemSubclass = self:GetItemSubclass(itemLink)
+  if not self:UnitCanUseItemSubclass(unit, itemSubclass) then
+    self:Vtrace(unit.." can't use item subclass "..tostring(armorType))
     return false
   end
 
@@ -709,15 +837,10 @@ function PersonalLoot:OnCommReceived(prefix, message, distribution, sender)
 end
 
 function PersonalLoot:OnInitialize()
-  local defaults = {
-    char = {
-      enablePublicAnnouncing = false,
-      isDebugging = false,
-      isVerbose = false,
-      allItemTypes = false,
-    }
-  }
-  self.db = LibStub("AceDB-3.0"):New("PersonalLootDB", defaults)
+  self.db = LibStub("AceDB-3.0"):New("PersonalLootDB", self.defaultOptions)
+  LibStub("AceConfig-3.0"):RegisterOptionsTable("PersonalLoot", self.options, "pl")
+  LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("PersonalLoot", self.options)
+  LibStub("AceConfigDialog-3.0"):AddToBlizOptions("PersonalLoot", "PersonalLoot")
 end
 
 function PersonalLoot:OnEnable()
