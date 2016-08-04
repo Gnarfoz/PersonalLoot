@@ -7,6 +7,9 @@ PersonalLoot = LibStub("AceAddon-3.0"):NewAddon("PersonalLoot", "AceComm-3.0", "
 LBI = LibStub:GetLibrary("LibBabble-Inventory-3.0"):GetLookupTable()
 
 local ANNOUNCER_NEGOTIATION_CHANNEL = "PLAnnNeg"
+-- Duration is in seconds. TODO: Reduce on release
+local CACHE_DURATION = 3000
+
 local INSPECT_DIST = 285*285
 local RED = "cffff0000"
 local ITEM_QUALITY_RARE = 3
@@ -231,12 +234,14 @@ PersonalLoot.classProficiencies = {
   },
 }
 
+-- Only outputs when debugging is enabled
 function PersonalLoot:Trace(message)
   if self.db.char.isDebugging then
     self:Print(message)
   end
 end
 
+-- Only outputs when verbose is enabled
 function PersonalLoot:Vtrace(message)
   if self.db.char.isVerbose then
     self:Trace(message)
@@ -255,6 +260,7 @@ function tableIsEmpty(table)
   return next(table) == nil
 end
 
+-- Returns -1 when val isn't found
 function tableGetIndex(table, val)
     for index, value in ipairs(table) do
         if value == val then
@@ -269,6 +275,8 @@ function tableContains(table, val)
   return tableGetIndex(table, val) > 0
 end
 
+-- If public announcing is enabled and you are the announcer it will report
+-- the message to the appropriate channel, otherwie it'll print locally.
 function PersonalLoot:Announce(message)
   if not message then
     self:Error("Announce called with a nil message")
@@ -298,6 +306,7 @@ function PersonalLoot:Announce(message)
   end
 end
 
+-- TODO: Remove, this is for debugging
 function PersonalLoot:PLAYER_TARGET_CHANGED(cause)
     local playerName = GetUnitName("playertarget")
     self:InspectEquipment(playerName)
@@ -308,13 +317,18 @@ function PersonalLoot:GROUP_JOINED()
   self:TryToBecomeAnnouncer()
 end
 
+-- Caching is local to the addon, a player's items are removed
+-- from the cache on timeout (CACHE_DURATION) or when they're no longer
+-- in the player's group
 function PersonalLoot:UnitEquipmentIsCached(playerName)
   return playerName and self.playerItems[playerName]
          and not self.playerItems[playerName]["pending"]
-         and self.playerItems[playerName]["time"] >= GetTime() - 3000
+         and self.playerItems[playerName]["time"] >= GetTime() - CACHE_DURATION
 end
 
--- Loads a player's equipment from cache or the server
+-- Loads a player's equipment from cache if posible and retuns instantly,
+-- otherwise a fetch from the server is required and will be handled by
+-- INSPECT_READY later on
 function PersonalLoot:InspectEquipment(playerName)
   if self:UnitEquipmentIsCached() then
     self:Vtrace(playerName.." items are cached and up to date.")
@@ -329,6 +343,8 @@ function PersonalLoot:InspectEquipment(playerName)
   end
 end
 
+-- This is called as a result of InspectEquipment when the target's items aren't
+-- cached.
 function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   self:UnregisterEvent("INSPECT_READY")
   -- TODO: determine whether the player was inspected because they have loot
@@ -432,6 +448,8 @@ function PersonalLoot:ZONE_CHANGED_NEW_AREA()
   self:UpdateChatMsgLootRegistration()
 end
 
+-- Player group type, location and enemy type determine whether tradable
+-- items can drop
 function PersonalLoot:TradableItemsCanDrop()
   if self.instanceType == "party" then
     return true
@@ -452,12 +470,11 @@ function PersonalLoot:UpdateChatMsgLootRegistration()
   end
 end
 
-
+-- FingerSlot is for Finger0Slot / Finger1Slot
+-- TrinketSlot is for Trinket0Slot / Trinket1Slot
+-- WeaponSlot is for any weapon which isn't specifically main or off hand
+-- TODO: Handle relics
 function PersonalLoot:InvTypeToEquipSlotName(name)
-  -- FingerSlot is for Finger0Slot / Finger1Slot
-  -- TrinketSlot is for Trinket0Slot / Trinket1Slot
-  -- WeaponSlot is for any weapon which isn't specifically main or off hand
-  -- TODO: Handle relics
   local map = {
     [ "INVTYPE_2HWEAPON" ] = "WeaponSlot",
     [ "INVTYPE_FEET" ] = "FeetSlot",
@@ -559,6 +576,7 @@ function PersonalLoot:UnitCanUseItemSubclass(unit, itemSubclass)
   return canWear
 end
 
+-- TODO: Move quality check to a separate function
 function PersonalLoot:IsEquipment(owner, itemLink)
   if not owner or not itemLink then
     self:Error("IsEquipment received nil owner or itemLink")
