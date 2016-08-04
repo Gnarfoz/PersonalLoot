@@ -311,11 +311,17 @@ end
 function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   -- TODO: determine whether the player was inspected because they have loot
   -- or are a recipient
-  local _, _, _, _, _, playerName, _ = GetPlayerInfoByGUID(playerGuid)
+  local _, _, _, _, _, playerName, playerRealm = GetPlayerInfoByGUID(playerGuid)
+
+  -- convert it to the UnitName format for cross realm names
+  if playerRealm then
+    playerName = playerName.."-"..playerRealm
+  end
+
   self:Vtrace("Inspect ready for "..playerName)
   local playerIndex = tableGetIndex(self.currentPlayers, playerName)
   if playerIndex < 0 then
-    self:Vtrace(playerName.." isn't in the curentPlayers table, got index "..tostring(playerIndex))
+    self:Vtrace(playerName.." isn't in the currentPlayers table, got index "..tostring(playerIndex))
     return
   end
 
