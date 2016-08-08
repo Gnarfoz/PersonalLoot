@@ -566,12 +566,14 @@ end
 
 -- itemSubclass is the 7th return value of GetItemInfo
 function PersonalLoot:UnitCanUseItemSubclass(unit, itemSubclass)
+  self:Vtrace("Item subclass is "..itemSubclass)
+
   -- TODO: do necks, rings, trinkets come under Miscellaneous?
   if itemSubclass == LBI["Miscellaneous"] then
     return true
   end
 
-  if itemSubClass == LBI["Cloaks"] then
+  if itemSubclass == LBI["Cloaks"] then
     return true
   end
 
@@ -581,8 +583,8 @@ function PersonalLoot:UnitCanUseItemSubclass(unit, itemSubclass)
     return false
   end
 
-  local canWear = tableContains(self.classProficiencies[unitClass], itemSubClass)
-  self:Vtrace(unitClass.." can use "..itemSubClass.."? "..tostring(canWear))
+  local canWear = tableContains(self.classProficiencies[unitClass], itemSubclass)
+  self:Vtrace(unitClass.." can use "..itemSubclass.."? "..tostring(canWear))
   return canWear
 end
 
@@ -756,11 +758,11 @@ function PersonalLoot:UnitCanUse(unit, itemLink)
 
   local itemSubclass = self:GetItemSubclass(itemLink)
   if not self:UnitCanUseItemSubclass(unit, itemSubclass) then
-    self:Vtrace(unit.." can't use item subclass "..tostring(armorType))
+    self:Vtrace(unit.." can't use item subclass "..tostring(itemSubclass))
     return false
   end
 
-  if armorType == "Miscellaneous" then
+  if itemSubclass == "Miscellaneous" then
     if not self:UnitUsesPrimaryStatsOfItem(unit, itemLink) then
       self:Vtrace(unit.." can't use the primary stats.")
       return false
