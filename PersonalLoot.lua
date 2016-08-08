@@ -400,7 +400,7 @@ function PersonalLoot:CHAT_MSG_LOOT(id, message)
 
   _, _, itemLink = string.find(message, "You receive loot: (|.+|r)")
   if itemLink then
-    owner = UnitName("player")
+    owner = self:GetUnitNameWithRealm("player")
   else
     _, _, owner, itemLink = string.find(message, "(.+) receives loot: (|.+|r)")
   end
