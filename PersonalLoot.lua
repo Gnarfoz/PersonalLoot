@@ -275,6 +275,20 @@ function tableContains(table, val)
   return tableGetIndex(table, val) > 0
 end
 
+function PersonalLoot:GetUnitNameWithRealmByGUID(id)
+  local _, _, _, _, _, name, realm = GetPlayerInfoByGUID(id)
+  if not realm or realm == "" then
+    realm = GetRealmName()
+  end
+  local nameWithRealm = name.."-"..realm
+  self:Vtrace("Name with realm = "..nameWithRealm)
+  return nameWithRealm
+end
+
+function PersonalLoot:GetUnitNameWithRealm(unit)
+  return self:GetUnitNameWithRealmByGUID(UnitGUID(unit))
+end
+
 -- If public announcing is enabled and you are the announcer it will report
 -- the message to the appropriate channel, otherwie it'll print locally.
 function PersonalLoot:Announce(message)
@@ -334,6 +348,7 @@ function PersonalLoot:InspectEquipment(playerName)
     self:Vtrace(playerName.." items are cached and up to date.")
     self:HandleLootedItem(playerName, self.currentLoot)
   elseif CanInspect(playerName) then
+    self.playerItems[playerName] = { }
     self:Vtrace("Starting equipment inspection for "..playerName.."...")
     self.playerItems[playerName]["pending"] = true
     self.playerItems[playerName]["time"] = 0
@@ -349,12 +364,7 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
   self:UnregisterEvent("INSPECT_READY")
   -- TODO: determine whether the player was inspected because they have loot
   -- or are a recipient
-  local _, _, _, _, _, playerName, playerRealm = GetPlayerInfoByGUID(playerGuid)
-
-  -- convert it to the UnitName format for cross realm names
-  if playerRealm then
-    playerName = playerName.."-"..playerRealm
-  end
+  local playerName = self:GetUnitNameWithRealmByGUID(playerGuid)
 
   if self.playerItems[playerName] then
     self.playerItems[playerName]["pending"] = false
@@ -667,7 +677,7 @@ function PersonalLoot:EnumerateTradees(owner, itemLink)
 
   local amountOfPotentialTradees = 0
   for i = 1, groupSize, 1 do
-    local name = GetRaidRosterInfo(i)
+    local name = self:GetUnitNameWithRealm(GetRaidRosterInfo(i))
     if not UnitIsUnit("player", name) then
       if self:UnitCanUse(name, itemLink) then
         self:InspectEquipment(name)
