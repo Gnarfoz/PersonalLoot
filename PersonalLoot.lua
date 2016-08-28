@@ -386,7 +386,7 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
     self:Vtrace("Finished inspecting "..playerName)
     self:HandleLootedItem(playerName, self.currentLoot)
   else
-    self:Vtrace(playerName.." is index "..tostring(playerIndex))
+    self:Vtrace(playerName.." is index "..tostring(playerIndex)) -- XXX what's playerIndex?
   end
 end
 
