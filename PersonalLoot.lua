@@ -78,9 +78,9 @@ PersonalLoot.options = {
           get = "IsEnabled",
           set = function(_, newVal)
             if (not newVal) then
-              self:Disable();
+              PersonalLoot:Disable();
             else
-              self:Enable();
+              PersonalLoot:Enable();
             end
           end,
         },
@@ -256,12 +256,12 @@ function PersonalLoot:ColouredPrint(message, colour)
   self:Print("|"..colour..message)
 end
 
-function tableIsEmpty(table)
+local function tableIsEmpty(table)
   return next(table) == nil
 end
 
 -- Returns -1 when val isn't found
-function tableGetIndex(table, val)
+local function tableGetIndex(table, val)
     for index, value in ipairs(table) do
         if value == val then
             return index
@@ -271,7 +271,7 @@ function tableGetIndex(table, val)
     return -1
 end
 
-function tableContains(table, val)
+local function tableContains(table, val)
   return tableGetIndex(table, val) > 0
 end
 
@@ -371,9 +371,9 @@ function PersonalLoot:INSPECT_READY(fnName, playerGuid)
     self:Vtrace("Inspect ready for "..playerName)
     -- Cache all of the equipment slots
     for id=0,19,1 do
-      link = GetInventoryItemLink(playerName, id)
+      local link = GetInventoryItemLink(playerName, id)
       if not link then
-        distanceSquared, valid = UnitDistanceSquared(playerName)
+        local distanceSquared, valid = UnitDistanceSquared(playerName)
         if not valid or distanceSquared >= INSPECT_DIST then
           ClearInspectPlayer()
           self:Error(playerName.." is too far to inspect!")
@@ -396,7 +396,7 @@ function PersonalLoot:ItemIsBindOnEquip(itemLink)
 end
 
 function PersonalLoot:CHAT_MSG_LOOT(id, message)
-  local owner, itemLink
+  local owner, itemLink, _
 
   _, _, itemLink = string.find(message, "You receive loot: (|.+|r)")
   if itemLink then
@@ -613,7 +613,7 @@ function PersonalLoot:IsEquipment(owner, itemLink)
     end
   end
 
-  slotName = self:InvTypeToEquipSlotName(invType)
+  local slotName = self:InvTypeToEquipSlotName(invType)
   if not slotName then
     return false
   end
