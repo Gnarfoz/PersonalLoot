@@ -637,6 +637,8 @@ end
 function PersonalLoot:IsTradable(owner, itemLink)
   assert(owner and itemLink)
   local itemLevel = self:GetRealItemLevel(itemLink)
+  local _, _, quality, _, _, _, _, _, invType = GetItemInfo(itemLink)
+  local slotName = self:InvTypeToEquipSlotName(invType)
 
   if slotName == "FingerSlot" then
     return self:GetRealItemLevelBySlotName(owner, "Finger0Slot") >= itemLevel
@@ -750,6 +752,7 @@ end
 
 function PersonalLoot:UnitCanUse(unit, itemLink)
   local classRestriction = self:GetArmorClassRestriction(itemLink)
+  local _, unitClass, _ = UnitClass(unit)
 
   if classRestriction and classRestriction ~= unitClass then
     self:Vtrace(unit.." can't use items restricted to class "..tostring(classRestriction))
